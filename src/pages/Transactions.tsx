@@ -1,0 +1,220 @@
+import React, { useEffect, useState } from 'react';
+import { useDatabase } from '@/src/context/DatabaseContext';
+import { Transaction } from '@/src/db/database';
+import { useDialog } from '@/src/context/DialogContext';
+import { Plus } from 'lucide-react';
+import { cn } from '@/src/lib/utils';
+import { DashboardTable } from '@/src/components/DashboardTable';
+import { Modal } from '@/src/components/Modal';
+
+export default function Transactions() {
+  const { transactions, assets, db } = useDatabase();
+  const { addTransaction, deleteTransaction, getPosition } = db;
+  const { showAlertDialog, showConfirmDialog } = useDialog();
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    ticker: '',
+    date: new Date().toISOString().split('T')[0],
+    type: 'BUY' as 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT',
+    qty: '',
+    price: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // 3. Validação dos campos necessários
+    if (!formData.ticker.trim()) {
+      showAlertDialog('Favor informar o Ticker.');
+      return;
+    }
+    if (!formData.qty || parseFloat(formData.qty) <= 0) {
+      showAlertDialog('Favor informar uma quantidade válida.');
+      return;
+    }
+    if (!formData.date) {
+      showAlertDialog('Favor informar a data.');
+      return;
+    }
+
+    const isCorporateAction = formData.type === 'SPLIT' || formData.type === 'INPLIT';
+    if (!isCorporateAction && (!formData.price || parseFloat(formData.price) <= 0)) {
+      showAlertDialog('Favor informar um preço unitário válido.');
+      return;
+    }
+
+    const qty = parseFloat(formData.qty);
+    const ticker = formData.ticker.toUpperCase().trim();
+
+    // 1. Form de entrada de registro: a quantidade vendida, nao pode ser maior que a quantidade disponivel
+    if (formData.type === 'SELL') {
+      const currentPos = await getPosition(ticker);
+      const available = currentPos ? currentPos.qty : 0;
+      if (qty > available) {
+        showAlertDialog(`Quantidade para venda (${qty}) maior que a disponível (${available.toLocaleString()}) para o ticker ${ticker}.`);
+        return;
+      }
+    }
+
+    await addTransaction({
+      ticker,
+      date: formData.date,
+      type: formData.type,
+      qty,
+      price: isCorporateAction ? 0 : parseFloat(formData.price)
+    });
+
+    setFormData({
+      ticker: '',
+      date: new Date().toISOString().split('T')[0],
+      type: 'BUY',
+      qty: '',
+      price: ''
+    });
+    setShowForm(false);
+  };
+
+  const handleDelete = async (row: any) => {
+    const {id} = row;
+    if (!id) return;
+    showConfirmDialog('Deseja excluir esta transação?', async () => {
+      await deleteTransaction(id);
+    });
+  };
+
+  console.log(transactions);
+  const tableData = transactions.map(tx => ({
+    data: { 
+      ...tx, 
+      total: tx.qty * tx.price,
+      status: tx.is_pending ? 'PENDENTE' : 'CONSOLIDADO'
+    },
+    flags: { canEdit: false, canDelete: true }
+  }));
+
+  const tableColumns: Record<string, string | import('@/src/components/DashboardTable').ColumnSettings> = {
+    ticker: {
+      label: "Ticker",
+      filterable: true,
+      filterOptions: assets.map(a => ({ label: a.ticker, value: a.ticker }))
+    },
+    date: "Date",
+    type: "Type",
+    qty: { label: "Qty", type: "number", align: "right" },
+    price: { label: "Price", type: "number", align: "right", formatOptions: { minimumFractionDigits: 2, maximumFractionDigits: 2 } },
+    total: { label: "Total", type: "number", align: "right", formatOptions: { minimumFractionDigits: 2, maximumFractionDigits: 2 } },
+    status: "Status"
+  };
+
+  const tableHeading = (
+    <div className="flex justify-between items-center w-full">
+      <div>
+        <h3 className="text-sm font-bold text-brand-ink uppercase tracking-wider">Histórico de Transações</h3>
+        <p className="text-[10px] text-slate-400 font-mono">CONTADOR: {transactions.length} | FILTRO: NENHUM</p>
+      </div>
+      <button
+        onClick={() => setShowForm(true)}
+        className="btn btn-primary"
+      >
+        <Plus size={14} />
+        Evento
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <Modal 
+        isOpen={showForm} 
+        onClose={() => setShowForm(false)} 
+        title="Registrar Novo Evento"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Ticker</label>
+              <input
+                type="text"
+                placeholder="Ex: AAPL"
+                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none uppercase focus:border-brand-accent transition-colors"
+                value={formData.ticker}
+                onChange={e => setFormData({ ...formData, ticker: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Data da Transação</label>
+              <input
+                type="date"
+                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm outline-none focus:border-brand-accent transition-colors"
+                value={formData.date}
+                onChange={e => setFormData({ ...formData, date: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Tipo de Evento</label>
+              <select
+                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm outline-none focus:border-brand-accent transition-colors"
+                value={formData.type}
+                onChange={e => setFormData({ ...formData, type: e.target.value as any })}
+              >
+                <option value="BUY">COMPRA (BUY)</option>
+                <option value="SELL">VENDA (SELL)</option>
+                <option value="SPLIT">DESDOBRAMENTO (SPLIT)</option>
+                <option value="INPLIT">AGRUPAMENTO (INPLIT)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Volume / Quantidade</label>
+              <input
+                type="number"
+                step="any"
+                placeholder="0.00"
+                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
+                value={formData.qty}
+                onChange={e => setFormData({ ...formData, qty: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Preço Unitário</label>
+            <input
+              type="number"
+              step="any"
+              placeholder="0.00"
+              className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
+              value={formData.price}
+              onChange={e => setFormData({ ...formData, price: e.target.value })}
+            />
+          </div>
+
+          <div className="pt-4 border-t border-brand-line flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="btn bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200"
+            >
+              CANCELAR
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+            >
+              CONFIRMAR REGISTRO
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <DashboardTable 
+        heading={tableHeading}
+        data={tableData}
+        columns={tableColumns}
+        onDelete={handleDelete}
+      />
+    </div>
+  );
+}

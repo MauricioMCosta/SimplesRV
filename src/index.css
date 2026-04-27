@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-sidebar: #0f172a;
+  --color-brand-bg: #f8fafc;
+  --color-brand-ink: #1e293b;
+  --color-brand-accent: #3b82f6;
+  --color-brand-line: #e2e8f0;
+  
+  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Courier New", Courier, monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-bg text-brand-ink;
+  }
+}
+
+.card {
+  @apply bg-white border border-brand-line rounded-lg p-5 flex flex-col;
+}
+
+.card-title {
+  @apply text-[11px] uppercase tracking-widest text-slate-500 mb-2 font-bold;
+}
+
+.stat-value {
+  @apply text-2xl font-bold text-brand-ink font-mono tracking-tighter;
+}
+
+.data-table {
+  @apply w-full border-collapse text-[13px];
+}
+
+.data-table th {
+  @apply bg-brand-bg text-left p-3 text-[10px] uppercase font-bold text-slate-500 border-b border-brand-line;
+}
+
+.data-table td {
+  @apply p-3 border-b border-brand-line;
+}
+
+.btn {
+  @apply px-3 py-1.5 rounded border border-brand-line bg-white text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-colors;
+}
+
+.btn-primary {
+  @apply bg-brand-accent text-white border-brand-accent hover:bg-blue-600;
+}
+
+.card-helper {
+  @apply mt-4 flex items-center gap-2 text-[10px] text-slate-400 font-mono;
+}

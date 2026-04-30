@@ -11,13 +11,20 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const navItems: NavItem[] = [
+const topNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
   { label: 'Ativos', href: '/assets', icon: Database },
   { label: 'Transações', href: '/transactions', icon: ListOrdered },
   { label: 'Lucros Realizados', href: '/sells', icon: BadgeDollarSign },
-  { label: 'Configurações', href: '/settings', icon: Settings },
 ];
+
+const bottomNavItems: NavItem[] = [
+  { label: 'Configurações', href: '/settings', icon: Settings },
+  { label: 'Manual de Uso', href: '/manual', icon: BookOpen },
+  { label: 'Sobre', href: '/about', icon: Info },
+];
+
+const allNavItems = [...topNavItems, ...bottomNavItems];
 
 export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -29,7 +36,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <AppLogo />
         
         <nav className="flex-1 py-4">
-          {navItems.map((item) => {
+          {topNavItems.map((item) => {
             const isActive = location.pathname === item.href;
             return (
               <Link
@@ -50,30 +57,24 @@ export function Layout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="py-4 border-t border-white/10 flex flex-col">
-           <Link
-             to="/manual"
-             className={cn(
-               "px-6 py-2.5 flex items-center gap-3 text-sm transition-all relative",
-               location.pathname === '/manual' 
-                 ? "text-white bg-white/5 border-l-4 border-brand-accent" 
-                 : "text-slate-400 hover:text-white hover:bg-white/5"
-             )}
-           >
-             <BookOpen size={16} />
-             <span>Manual de Uso</span>
-           </Link>
-           <Link
-             to="/about"
-             className={cn(
-               "px-6 py-2.5 flex items-center gap-3 text-sm transition-all relative",
-               location.pathname === '/about' 
-                 ? "text-white bg-white/5 border-l-4 border-brand-accent" 
-                 : "text-slate-400 hover:text-white hover:bg-white/5"
-             )}
-           >
-             <Info size={16} />
-             <span>Sobre</span>
-           </Link>
+          {bottomNavItems.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "px-6 py-2.5 flex items-center gap-3 text-sm transition-all relative",
+                  isActive 
+                    ? "text-white bg-white/5 border-l-4 border-brand-accent" 
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <item.icon size={16} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
       </aside>
 
@@ -81,7 +82,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 bg-white border-b border-brand-line flex items-center justify-between px-8 shrink-0">
           <h2 className="text-lg font-semibold text-brand-ink">
-            {navItems.find(i => i.href === location.pathname)?.label || 'Visão Geral'}
+            {allNavItems.find(i => i.href === location.pathname)?.label || 'Visão Geral'}
           </h2>
         </header>
 

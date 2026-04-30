@@ -30,7 +30,7 @@ export interface Sell {
   avgCost: number;
   sellPrice: number;
   profit: number;
-  type: 'DAY' | 'SWING';
+  type: 'DAY' | 'SWING' | 'AJUSTE';
 }
 
 export interface Asset {
@@ -190,10 +190,32 @@ export async function _consolidateTrades(generateSells: boolean = true) {
         }
 
         for (const t of dayTxs) {
-          if (t.type === 'SPLIT' || t.type === 'INPLIT') {
+          if (t.type === 'SPLIT') {
             if (t.qty > 0) {
               pos.qty *= t.qty;
               pos.avgPrice /= t.qty;
+            }
+          } else if (t.type === 'INPLIT') {
+            if (t.qty > 0 && pos.qty > 0) {
+              const newTotalQty = pos.qty / t.qty;
+              const wholeQty = Math.floor(newTotalQty);
+              const fractionalQty = newTotalQty - wholeQty;
+              const newAvgPrice = pos.avgPrice * t.qty;
+              
+              if (generateSells && fractionalQty > 0) {
+                await db.sells.add({
+                  ticker,
+                  date,
+                  qty: fractionalQty,
+                  avgCost: newAvgPrice,
+                  sellPrice: newAvgPrice,
+                  profit: 0,
+                  type: 'AJUSTE'
+                });
+              }
+              
+              pos.qty = wholeQty;
+              pos.avgPrice = newAvgPrice;
             }
           }
         }

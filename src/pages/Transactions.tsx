@@ -167,7 +167,7 @@ export default function Transactions() {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Volume / Quantidade</label>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Volume / Fator</label>
               <input
                 type="number"
                 step="any"
@@ -176,6 +176,11 @@ export default function Transactions() {
                 value={formData.qty}
                 onChange={e => setFormData({ ...formData, qty: e.target.value })}
               />
+              <p className="text-[10px] text-slate-400 mt-1">
+                {formData.type === 'INPLIT' && 'Fator de agrupamento (ex: 10 para 10:1)'}
+                {formData.type === 'SPLIT' && 'Fator de desdobramento (ex: 10 para 1:10)'}
+                {(formData.type === 'BUY' || formData.type === 'SELL') && 'Quantidade de cotas/ações'}
+              </p>
             </div>
           </div>
 
@@ -185,10 +190,16 @@ export default function Transactions() {
               type="number"
               step="any"
               placeholder="0.00"
-              className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
-              value={formData.price}
+              disabled={formData.type === 'SPLIT' || formData.type === 'INPLIT'}
+              className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors disabled:opacity-50 disabled:bg-slate-200"
+              value={formData.type === 'SPLIT' || formData.type === 'INPLIT' ? '' : formData.price}
               onChange={e => setFormData({ ...formData, price: e.target.value })}
             />
+            {(formData.type === 'SPLIT' || formData.type === 'INPLIT') && (
+              <p className="text-[10px] text-slate-400 mt-1">
+                O preço médio será ajustado automaticamente com base no fator informado.
+              </p>
+            )}
           </div>
 
           <div className="pt-4 border-t border-brand-line flex justify-end gap-3">

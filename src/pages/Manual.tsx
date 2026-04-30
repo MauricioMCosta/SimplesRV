@@ -23,6 +23,16 @@ O coração do $implesRV é a aba **Transações**. Nela você registra suas com
 - A consistência temporal é importante: o sistema recalcula de forma cronológica com base nessas entradas para determinar custos médios.
 - O campo "Filtro" nas colunas facilita explorar o histórico de um ativo específico em meio a grandes volumes.
 
+### 3.1 Eventos Corporativos (Desdobramento e Agrupamento)
+O sistema suporta o registro de ajustes de custódia diretamente na aba de Transações:
+- **Desdobramento (SPLIT):** Utilizado quando a empresa aumenta o número de ações (ex: 1 para 10). Informe o **Fator** de multiplicação (ex: 10). Sua quantidade será multiplicada e seu preço médio dividido por este fator.
+- **Agrupamento (INPLIT):** Utilizado para consolidar ações (ex: 10 para 1). Informe o **Fator** de agrupamento (ex: 10). Sua quantidade será dividida e seu preço médio multiplicado.
+- **Tratamento de Frações (Sobras):** No agrupamento, se a divisão não for exata, o sistema realizará o seguinte ajuste automático:
+    - A parte inteira permanece na sua custódia.
+    - A porção fracionária (ex: 0,5 cota) é movida para a aba **Lucros Realizados** com o tipo **AJUSTE**.
+    - Inicialmente, o preço de venda é igual ao custo médio (lucro zero). Quando você receber o valor do leilão de frações da corretora, você pode identificar essa linha em Lucros Realizados e entender o impacto fiscal daquela liquidação forçada.
+
+
 ## 4. Lucros Realizados
 Nesta sessão, você visualiza de forma automática a consolidação dos resultados de suas vendas.
 - Toda vez que uma VENDA é incluída na aba Transações, o sistema busca as COMPRAS anteriores do mesmo Ticker e calcula o lucro ou prejuízo do evento.
@@ -42,7 +52,7 @@ Nesta sessão, você visualiza de forma automática a consolidação dos resulta
 export default function Manual() {
   return (
     <div className="max-w-4xl mx-auto py-8">
-      <div className="bg-white border border-brand-line p-10 rounded shadow-sm text-center flex flex-col items-center">
+      <div className="bg-white border border-brand-line p-10 rounded shadow-sm text-center flex flex-col items-center mb-6">
         <div className="w-16 h-16 bg-brand-sidebar text-brand-accent font-bold tracking-tight text-xl flex items-center justify-center rounded-xl mb-4">
           $RV
         </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { ShieldAlert } from 'lucide-react';
 
 const markdownContent = `
@@ -84,7 +85,7 @@ export default function About() {
 
       {/* Markdown Content Card */}
       <div className="bg-white border flex flex-col border-brand-line p-10 rounded shadow-sm prose prose-slate prose-sm sm:prose-base max-w-none text-slate-700">
-        <Markdown>
+        <Markdown remarkPlugins={[remarkGfm]}>
           {markdownContent}
         </Markdown>
       </div>

@@ -15,6 +15,7 @@ import Sells from './pages/Sells';
 import Settings from './pages/Settings';
 import Manual from './pages/Manual';
 import About from './pages/About';
+import Reports from './pages/Reports';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/manual" element={<Manual />} />
               <Route path="/about" element={<About />} />
+              <Route path="/reports" element={<Reports />} />
             </Routes>
           </Layout>
         </DialogProvider>

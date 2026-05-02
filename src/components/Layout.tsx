@@ -1,4 +1,4 @@
-import { LucideIcon, LayoutDashboard, ListOrdered, Settings, BadgeDollarSign, Database, BookOpen, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LucideIcon, LayoutDashboard, ListOrdered, Settings, BadgeDollarSign, Database, BookOpen, Info, ChevronLeft, ChevronRight, FileBarChart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
@@ -16,6 +16,7 @@ const topNavItems: NavItem[] = [
   { label: 'Ativos', href: '/assets', icon: Database },
   { label: 'Transações', href: '/transactions', icon: ListOrdered },
   { label: 'Lucros Realizados', href: '/sells', icon: BadgeDollarSign },
+  { label: 'Relatórios', href: '/reports', icon: FileBarChart },
 ];
 
 const bottomNavItems: NavItem[] = [

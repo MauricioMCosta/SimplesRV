@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDatabase } from '@/src/context/DatabaseContext';
 import { Transaction } from '@/src/db/database';
 import { useDialog } from '@/src/context/DialogContext';
-import { Plus } from 'lucide-react';
+import { Plus, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { DashboardTable } from '@/src/components/DashboardTable';
 import { Modal } from '@/src/components/Modal';
@@ -19,6 +19,11 @@ export default function Transactions() {
     qty: '',
     price: ''
   });
+  
+  const handleOpenForm = (type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT' = 'BUY') => {
+    setFormData(prev => ({ ...prev, type }));
+    setShowForm(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,13 +117,30 @@ export default function Transactions() {
         <h3 className="text-sm font-bold text-brand-ink uppercase tracking-wider">Histórico de Transações</h3>
         <p className="text-[10px] text-slate-400 font-mono">CONTADOR: {transactions.length} | FILTRO: NENHUM</p>
       </div>
-      <button
-        onClick={() => setShowForm(true)}
-        className="btn btn-primary"
-      >
-        <Plus size={14} />
-        Evento
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={() => handleOpenForm('BUY')}
+          className="btn bg-green-50 text-green-700 border-green-200 hover:bg-green-100 flex items-center gap-1.5"
+        >
+          <ArrowUpCircle size={14} />
+          <span className="hidden sm:inline">Compra</span>
+        </button>
+        <button
+          onClick={() => handleOpenForm('SELL')}
+          className="btn bg-red-50 text-red-700 border-red-200 hover:bg-red-100 flex items-center gap-1.5"
+        >
+          <ArrowDownCircle size={14} />
+          <span className="hidden sm:inline">Venda</span>
+        </button>
+        <div className="w-px h-8 bg-slate-200 mx-1" />
+        <button
+          onClick={() => handleOpenForm()}
+          className="btn btn-primary"
+        >
+          <Plus size={14} />
+          Evento
+        </button>
+      </div>
     </div>
   );
 

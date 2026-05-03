@@ -7,6 +7,7 @@ import { cn } from '@/src/lib/utils';
 import { DashboardTable } from '@/src/components/DashboardTable';
 import { Modal } from '@/src/components/Modal';
 import { SRVAutoComplete } from '@/src/components/SRVAutoComplete';
+import { DataTableWrapper } from '@/src/components/DataTableWrapper';
 
 export default function Transactions() {
   const { transactions, assets, db } = useDatabase();
@@ -283,13 +284,15 @@ export default function Transactions() {
         </form>
       </Modal>
 
-      <DashboardTable 
-        heading={tableHeading}
-        data={tableData}
-        columns={tableColumns}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+      <DataTableWrapper initialData={tableData} initialLimit={15}>
+        <DashboardTable 
+          heading={tableHeading}
+          data={tableData}
+          columns={tableColumns}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      </DataTableWrapper>
     </div>
   );
 }

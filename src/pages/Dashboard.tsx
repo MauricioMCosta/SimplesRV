@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useDatabase } from '@/src/context/DatabaseContext';
 import { DashboardCard } from '@/src/components/DashboardCard';
 import { DashboardTable } from '@/src/components/DashboardTable';
+import { DataTableWrapper } from '../components/DataTableWrapper';
 
 export default function Dashboard() {
   const { db } = useDatabase();
@@ -88,12 +89,13 @@ export default function Dashboard() {
           
         />
       </div>
-
+      <DataTableWrapper initialData={tableData}>
       <DashboardTable 
         heading="Posição das ações"
         data={tableData}
         columns={tableColumns}
       />
+      </DataTableWrapper>
     </div>
   );
 }

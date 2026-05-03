@@ -4,6 +4,7 @@ import { useDialog } from '@/src/context/DialogContext';
 import { Plus } from 'lucide-react';
 import { DashboardTable } from '@/src/components/DashboardTable';
 import { Modal } from '@/src/components/Modal';
+import { DataTableWrapper } from '@/src/components/DataTableWrapper';
 
 export default function Assets() {
   const { assets, db } = useDatabase();
@@ -169,13 +170,15 @@ export default function Assets() {
         </form>
       </Modal>
 
-      <DashboardTable 
-        heading={tableHeading}
-        data={tableData}
-        columns={tableColumns}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+      <DataTableWrapper initialData={tableData} initialLimit={12}>
+        <DashboardTable 
+          heading={tableHeading}
+          data={tableData}
+          columns={tableColumns}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      </DataTableWrapper>
     </div>
   );
 }

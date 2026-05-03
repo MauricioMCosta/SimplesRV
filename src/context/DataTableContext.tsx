@@ -7,6 +7,7 @@ interface DataTableState {
   page: number;
   limit: number;
   search: string;
+  filters: Record<string, string>;
   sortBy: string | null;
   sortOrder: SortOrder;
 }
@@ -16,6 +17,7 @@ type DataTableAction =
   | { type: 'SET_PAGE', payload: number }
   | { type: 'SET_LIMIT', payload: number }
   | { type: 'SET_SEARCH', payload: string }
+  | { type: 'SET_FILTER', payload: { key: string; value: string } }
   | { type: 'SET_SORT', payload: { field: string; order?: SortOrder } }
   | { type: 'NEXT_PAGE'}
   | { type: 'PREV_PAGE'};
@@ -30,6 +32,11 @@ function dataTableReducer(state: DataTableState, action: DataTableAction) : Data
       return { ...state, limit: action.payload, page: 1 };
     case 'SET_SEARCH':
       return { ...state, search: action.payload, page: 1 };
+    case 'SET_FILTER': {
+      const newFilters = { ...state.filters, [action.payload.key]: action.payload.value };
+      if (!action.payload.value) delete newFilters[action.payload.key];
+      return { ...state, filters: newFilters, page: 1 };
+    }
     case 'SET_SORT': {
       const field = action.payload.field;
       const order = action.payload.order || (state.sortBy === field && state.sortOrder === 'asc' ? 'desc' : 'asc');
@@ -48,6 +55,7 @@ interface DataTableContextType extends DataTableState {
   totalRecords: number;
   totalPages: number;
   setSearch: (term: string) => void;
+  setFilter: (key: string, value: string) => void;
   setSort: (field: string, order?: SortOrder) => void;
   setPage: (page: number) => void;
   setLimit: (limit: number) => void;
@@ -55,7 +63,7 @@ interface DataTableContextType extends DataTableState {
   prev: () => void;
 }
 
-const DataTableContext = createContext<DataTableContextType | undefined>(undefined);
+export const DataTableContext = createContext<DataTableContextType | undefined>(undefined);
 
 interface DataTableProviderProps {
   children: ReactNode;
@@ -63,12 +71,17 @@ interface DataTableProviderProps {
   initialLimit?: number;
 }
 
+const getNestedValue = (obj: any, path: string) => {
+  return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+};
+
 export function DataTableProvider({ children, initialData = [], initialLimit = 10 }: DataTableProviderProps) {
   const [state, dispatch] = useReducer(dataTableReducer, {
     data: initialData,
     page: 1,
     limit: initialLimit,
     search: '',
+    filters: {},
     sortBy: null,
     sortOrder: 'asc'
   });
@@ -79,19 +92,39 @@ export function DataTableProvider({ children, initialData = [], initialLimit = 1
   }, [initialData]);
 
   const filteredData = useMemo(() => {
-    if (!state.search) return state.data;
-    const term = state.search.toLowerCase();
-    return state.data.filter(item => 
-      Object.values(item).some(val => 
-        String(val).toLowerCase().includes(term)
-      )
-    );
-  }, [state.data, state.search]);
+    let result = state.data;
+
+    // Apply column filters
+    if (Object.keys(state.filters).length > 0) {
+      result = result.filter(item => {
+        return Object.entries(state.filters).every(([key, value]) => {
+          // Since DashboardTable uses "data.key" for nested access, 
+          // but filters might be passed as plain keys or deep keys, 
+          // we should handle both.
+          const val = getNestedValue(item, key);
+          return !value || String(val) === value;
+        });
+      });
+    }
+
+    // Apply search
+    if (state.search) {
+      const term = state.search.toLowerCase();
+      const searchIn = (item: any): boolean => {
+        if (item === null || item === undefined) return false;
+        if (typeof item !== 'object') return String(item).toLowerCase().includes(term);
+        return Object.values(item).some(val => searchIn(val));
+      };
+      result = result.filter(searchIn);
+    }
+
+    return result;
+  }, [state.data, state.search, state.filters]);
 
   const sortedData = useMemo(() => {
     if (!state.sortBy) return filteredData;
     return [...filteredData].sort((a, b) => {
-      const aVal = a[state.sortBy!];
+      const aVal = getNestedValue(a, state.sortBy!);
       const bVal = b[state.sortBy!];
 
       if (typeof aVal === 'number' && typeof bVal === 'number') {
@@ -120,6 +153,7 @@ export function DataTableProvider({ children, initialData = [], initialLimit = 1
     totalRecords: sortedData.length,
     totalPages,
     setSearch: (payload) => dispatch({ type: 'SET_SEARCH', payload }),
+    setFilter: (key, value) => dispatch({ type: 'SET_FILTER', payload: { key, value } }),
     setSort: (field, order) => dispatch({ type: 'SET_SORT', payload: { field, order } }),
     setPage: (payload) => dispatch({ type: 'SET_PAGE', payload }),
     setLimit: (payload) => dispatch({ type: 'SET_LIMIT', payload }),

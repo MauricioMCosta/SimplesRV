@@ -14,9 +14,11 @@ export interface ReportDefinition {
 import { equitySummaryReport } from './equitySummary';
 import { profitByTickerReport } from './profitByTicker';
 import { annualizedPositionsReport } from './annualizedPositions';
+import { realizedProfitsReport } from './realizedProfits';
 
 export const reports: ReportDefinition[] = [
   equitySummaryReport,
   profitByTickerReport,
   annualizedPositionsReport,
+  realizedProfitsReport,
 ];

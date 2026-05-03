@@ -6,22 +6,47 @@ import { Plus, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { DashboardTable } from '@/src/components/DashboardTable';
 import { Modal } from '@/src/components/Modal';
+import { SRVAutoComplete } from '@/src/components/SRVAutoComplete';
 
 export default function Transactions() {
   const { transactions, assets, db } = useDatabase();
   const { addTransaction, deleteTransaction, getPosition } = db;
   const { showAlertDialog, showConfirmDialog } = useDialog();
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    id?: number;
+    ticker: string;
+    date: string;
+    type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT';
+    qty: string;
+    price: string;
+  }>({
     ticker: '',
     date: new Date().toISOString().split('T')[0],
-    type: 'BUY' as 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT',
+    type: 'BUY',
     qty: '',
     price: ''
   });
   
-  const handleOpenForm = (type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT' = 'BUY') => {
-    setFormData(prev => ({ ...prev, type }));
+  const handleOpenForm = (type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT' = 'BUY', editData?: Transaction) => {
+    if (editData) {
+      setFormData({
+        id: editData.id,
+        ticker: editData.ticker,
+        date: editData.date,
+        type: editData.type,
+        qty: editData.qty.toString(),
+        price: editData.price.toString()
+      });
+    } else {
+      setFormData({
+        ticker: '',
+        date: new Date().toISOString().split('T')[0],
+        type,
+        qty: '',
+        price: ''
+      });
+    }
     setShowForm(true);
   };
 
@@ -61,13 +86,23 @@ export default function Transactions() {
       }
     }
 
-    await addTransaction({
-      ticker,
-      date: formData.date,
-      type: formData.type,
-      qty,
-      price: isCorporateAction ? 0 : parseFloat(formData.price)
-    });
+    if (formData.id) {
+      await db.updateTransaction(formData.id, {
+        ticker,
+        date: formData.date,
+        type: formData.type,
+        qty,
+        price: isCorporateAction ? 0 : parseFloat(formData.price)
+      });
+    } else {
+      await addTransaction({
+        ticker,
+        date: formData.date,
+        type: formData.type,
+        qty,
+        price: isCorporateAction ? 0 : parseFloat(formData.price)
+      });
+    }
 
     setFormData({
       ticker: '',
@@ -77,6 +112,10 @@ export default function Transactions() {
       price: ''
     });
     setShowForm(false);
+  };
+
+  const handleEdit = (data: any) => {
+    handleOpenForm(data.type, data);
   };
 
   const handleDelete = async (row: any) => {
@@ -94,7 +133,7 @@ export default function Transactions() {
       total: tx.qty * tx.price,
       status: tx.is_pending ? 'PENDENTE' : 'CONSOLIDADO'
     },
-    flags: { canEdit: false, canDelete: true }
+    flags: { canEdit: true, canDelete: true }
   }));
 
   const tableColumns: Record<string, string | import('@/src/components/DashboardTable').ColumnSettings> = {
@@ -144,23 +183,25 @@ export default function Transactions() {
     </div>
   );
 
+  const tickerOptions = Array.from(new Set(assets.map(a => a.ticker.toUpperCase()))).sort();
+
   return (
     <div className="space-y-6">
       <Modal 
         isOpen={showForm} 
         onClose={() => setShowForm(false)} 
-        title="Registrar Novo Evento"
+        title={formData.id ? "Editar Evento" : "Registrar Novo Evento"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Ticker</label>
-              <input
-                type="text"
+              <SRVAutoComplete
+                label="Ticker"
                 placeholder="Ex: AAPL"
-                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none uppercase focus:border-brand-accent transition-colors"
+                options={tickerOptions}
                 value={formData.ticker}
-                onChange={e => setFormData({ ...formData, ticker: e.target.value })}
+                onChange={value => setFormData({ ...formData, ticker: value })}
+                required
               />
             </div>
             <div>
@@ -246,6 +287,7 @@ export default function Transactions() {
         heading={tableHeading}
         data={tableData}
         columns={tableColumns}
+        onEdit={handleEdit}
         onDelete={handleDelete}
       />
     </div>

@@ -15,7 +15,6 @@ const topNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
   { label: 'Ativos', href: '/assets', icon: Database },
   { label: 'Transações', href: '/transactions', icon: ListOrdered },
-  { label: 'Lucros Realizados', href: '/sells', icon: BadgeDollarSign },
   { label: 'Relatórios', href: '/reports', icon: FileBarChart },
 ];
 

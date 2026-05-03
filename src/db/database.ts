@@ -296,6 +296,42 @@ export async function addTransaction(t: Transaction) {
   });
 }
 
+export async function updateTransaction(id: number, t: Partial<Transaction>) {
+  await db.transaction('rw', [db.transactions, db.metadata, db.positions, db.sells, db.assets], async () => {
+    const existing = await db.transactions.get(id);
+    if (!existing) return;
+
+    const oldTicker = existing.ticker.toUpperCase();
+    const newTicker = t.ticker ? t.ticker.toUpperCase() : oldTicker;
+
+    // Update the transaction
+    await db.transactions.update(id, {
+      ...t,
+      ticker: newTicker,
+      is_pending: true
+    });
+
+    // Mark for re-consolidation: old ticker and new ticker
+    const tickersToConsolidate = new Set([oldTicker, newTicker]);
+    
+    for (const ticker of tickersToConsolidate) {
+       const txs = await db.transactions.where('ticker').equals(ticker).toArray();
+       for (const tx of txs) {
+         if (tx.id) await db.transactions.update(tx.id, { is_pending: true });
+       }
+       
+       // Also mark asset as pending if it exists
+       const asset = await db.assets.where('ticker').equals(ticker).first();
+       if (asset && asset.id) {
+         await db.assets.update(asset.id, { is_pending: true });
+       }
+    }
+
+    await db.metadata.put({ key: 'last_updated_at', value: new Date().toISOString() });
+    await _consolidateTrades(false);
+  });
+}
+
 export async function deleteTransaction(id: number) {
 
   await db.transaction('rw', db.transactions, db.metadata, db.positions, db.sells, async () => {

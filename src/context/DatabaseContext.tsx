@@ -53,6 +53,10 @@ export const DatabaseProvider = ({ children }: { children: ReactNode }) => {
         await dbActions.addTransaction(tx);
         await refresh();
     },
+    updateTransaction: async (id: number, tx: any) => {
+        await dbActions.updateTransaction(id, tx);
+        await refresh();
+    },
     deleteTransaction: async (id: number) => {
         await dbActions.deleteTransaction(id);
         await refresh();

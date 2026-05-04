@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDatabase } from '@/src/context/DatabaseContext';
 import { useDialog } from '@/src/context/DialogContext';
 import { Plus } from 'lucide-react';
@@ -73,20 +73,21 @@ export default function Assets() {
     handleOpenForm(row);
   };
 
-  const tableData = assets.map(asset => ({
+  const tableData = useMemo(() => assets.map(asset => ({
+    id: asset.id,
     data: { 
       ...asset,
       status: asset.is_pending ? 'PENDENTE' : 'OK'
     },
     flags: { canEdit: true, canDelete: true }
-  }));
+  })), [assets]);
 
-  const tableColumns = {
+  const tableColumns = useMemo(() => ({
     ticker: "Ticker",
     description: "Descrição",
     type: "Tipo",
     status: "Status"
-  };
+  }), []);
 
   const tableHeading = (
     <div className="flex justify-between items-center w-full">

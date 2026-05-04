@@ -1,6 +1,6 @@
 import { ReactNode, useState, useContext } from 'react';
 import { cn } from '@/src/lib/utils';
-import { Trash2, Edit2, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Trash2, Edit2, ChevronLeft, ChevronRight, Search, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { DataTableContext } from '../context/DataTableContext';
 
 export interface ColumnSettings {
@@ -34,30 +34,16 @@ interface DashboardTableProps {
 
 export function DashboardTable({ heading, data, columns, onEdit, onDelete }: DashboardTableProps) {
   const context = useContext(DataTableContext);
-  const [internalFilters, setInternalFilters] = useState<Record<string, string>>({});
   const columnKeys = Object.keys(columns);
 
   const handleFilterChange = (key: string, value: string) => {
     if (context) {
       context.setFilter(`data.${key}`, value);
-    } else {
-      setInternalFilters(prev => ({ ...prev, [key]: value }));
     }
   };
 
-  const filters = context ? context.filters : internalFilters;
-
-  // If context exists, use its displayData. Otherwise use internal filtered original data.
+  // If context exists, use its displayData. Otherwise fall back to prop data.
   const sourceData = context ? context.displayData : data;
-
-  const filteredData = context ? sourceData : sourceData.filter(row => {
-    for (const key of Object.keys(filters)) {
-      if (filters[key] !== '' && String(row.data[key]) !== filters[key]) {
-        return false;
-      }
-    }
-    return true;
-  });
 
   return (
     <div className="card !p-0 overflow-hidden">
@@ -98,31 +84,49 @@ export function DashboardTable({ heading, data, columns, onEdit, onDelete }: Das
                   <th 
                     key={key} 
                     className={cn(
-                      align === 'right' ? 'text-right align-top' : 'text-left align-top',
-                      context && "cursor-pointer hover:text-brand-accent transition-colors"
+                      align === 'right' ? 'text-right align-top' : 'text-left align-top'
                     )}
-                    onClick={() => context?.setSort(`data.${key}`)}
                   >
                     <div className={cn("flex flex-col gap-1.5", align === 'right' && "items-end")}>
-                      <div className="flex items-center gap-1">
-                        <span>{label}</span>
-                        {context?.sortBy === `data.${key}` && (
-                          <span className="text-[10px] opacity-50">
-                            {context.sortOrder === 'asc' ? '↑' : '↓'}
-                          </span>
+                      <div className="flex items-center gap-1.5 group">
+                        <span className="font-bold text-[11px] text-slate-500 uppercase tracking-tighter">{label}</span>
+                        {context && (
+                          <button
+                            type="button"
+                            onClick={() => context.setSort(`data.${key}`)}
+                            className={cn(
+                              "p-1 rounded hover:bg-slate-100 transition-colors focus:ring-1 focus:ring-brand-accent outline-none",
+                              context.sortBy === `data.${key}` ? "text-brand-accent bg-blue-50/50" : "text-slate-300 opacity-20 group-hover:opacity-100"
+                            )}
+                            title={
+                              context.sortBy === `data.${key}` 
+                                ? (context.sortOrder === 'asc' ? "Ordenar Descendente" : "Limpar Ordenação")
+                                : "Ordenar Ascendente"
+                            }
+                          >
+                            {context.sortBy === `data.${key}` ? (
+                              context.sortOrder === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+                            ) : (
+                              <ArrowUpDown size={12} className="opacity-50" />
+                            )}
+                          </button>
                         )}
                       </div>
                       {typeof col !== 'string' && col.filterable && col.filterOptions && (
                         <select
                           className="bg-white border border-brand-line rounded text-[10px] font-mono outline-none px-1 py-1 text-slate-600 font-normal max-w-[120px]"
-                          value={(context ? filters[`data.${key}`] : filters[key]) || ''}
+                          value={(context?.filters[`data.${key}`]) || ''}
                           onChange={(e) => handleFilterChange(key, e.target.value)}
                           onClick={(e) => e.stopPropagation()} // Prevent sort trigger
                         >
                           <option value="">Todos</option>
-                          {col.filterOptions.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
+                          {col.filterOptions.map((opt: any) => {
+                            const optionLabel = typeof opt === 'string' ? opt : opt.label;
+                            const optionValue = typeof opt === 'string' ? opt : opt.value;
+                            return (
+                              <option key={optionValue} value={optionValue}>{optionLabel}</option>
+                            );
+                          })}
                         </select>
                       )}
                     </div>
@@ -133,15 +137,15 @@ export function DashboardTable({ heading, data, columns, onEdit, onDelete }: Das
             </tr>
           </thead>
           <tbody>
-            {filteredData.length === 0 ? (
+            {sourceData.length === 0 ? (
               <tr>
                 <td colSpan={columnKeys.length + (onEdit || onDelete ? 1 : 0)} className="p-10 text-center text-slate-400 italic text-[11px]">
                   Nenhum dado encontrado.
                 </td>
               </tr>
             ) : (
-              filteredData.map((row, rowIndex) => (
-                <tr key={rowIndex} className="hover:bg-slate-50 transition-colors">
+              sourceData.map((row, rowIndex) => (
+                <tr key={row.id || rowIndex} className="hover:bg-slate-50 transition-colors">
                   {columnKeys.map((key) => {
                     const val = row.data[key];
                     const col = columns[key];

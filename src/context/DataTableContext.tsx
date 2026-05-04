@@ -14,6 +14,7 @@ interface DataTableState {
 
 type DataTableAction = 
   | { type: 'SET_DATA', payload: any[]}
+  | { type: 'SYNC_DATA', payload: any[]}
   | { type: 'SET_PAGE', payload: number }
   | { type: 'SET_LIMIT', payload: number }
   | { type: 'SET_SEARCH', payload: string }
@@ -26,6 +27,8 @@ function dataTableReducer(state: DataTableState, action: DataTableAction) : Data
   switch(action.type) {
     case 'SET_DATA': 
       return { ...state, data: action.payload, page: 1 };
+    case 'SYNC_DATA':
+      return { ...state, data: action.payload };
     case 'SET_PAGE':
       return { ...state, page: action.payload };
     case 'SET_LIMIT':
@@ -39,8 +42,18 @@ function dataTableReducer(state: DataTableState, action: DataTableAction) : Data
     }
     case 'SET_SORT': {
       const field = action.payload.field;
-      const order = action.payload.order || (state.sortBy === field && state.sortOrder === 'asc' ? 'desc' : 'asc');
-      return { ...state, sortBy: field, sortOrder: order, page: 1 };
+      let newSortBy: string | null = field;
+      let newSortOrder: SortOrder = 'asc';
+
+      if (state.sortBy === field) {
+        if (state.sortOrder === 'asc') {
+          newSortOrder = 'desc';
+        } else {
+          newSortBy = null; // Cycle back to no sort
+        }
+      }
+
+      return { ...state, sortBy: newSortBy, sortOrder: newSortOrder, page: 1 };
     }
     case 'NEXT_PAGE': 
       return { ...state, page: state.page + 1 };
@@ -88,7 +101,13 @@ export function DataTableProvider({ children, initialData = [], initialLimit = 1
 
   // Sync with prop changes if data is provided from outside
   useEffect(() => {
-    dispatch({ type: 'SET_DATA', payload: initialData });
+    // Only reset page 1 if data length changed significantly or if it's the initial load
+    // For simple updates (like price changes), we use SYNC_DATA to keep current page
+    if (state.data.length === 0 && initialData.length > 0) {
+      dispatch({ type: 'SET_DATA', payload: initialData });
+    } else {
+      dispatch({ type: 'SYNC_DATA', payload: initialData });
+    }
   }, [initialData]);
 
   const filteredData = useMemo(() => {
@@ -125,7 +144,7 @@ export function DataTableProvider({ children, initialData = [], initialLimit = 1
     if (!state.sortBy) return filteredData;
     return [...filteredData].sort((a, b) => {
       const aVal = getNestedValue(a, state.sortBy!);
-      const bVal = b[state.sortBy!];
+      const bVal = getNestedValue(b, state.sortBy!);
 
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         return state.sortOrder === 'asc' ? aVal - bVal : bVal - aVal;

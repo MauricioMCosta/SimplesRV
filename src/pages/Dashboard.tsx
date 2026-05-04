@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useDatabase } from '@/src/context/DatabaseContext';
 import { DashboardCard } from '@/src/components/DashboardCard';
 import { DashboardTable } from '@/src/components/DashboardTable';
@@ -35,24 +35,25 @@ export default function Dashboard() {
     loadData();
   };
 
-  if (isLoading) {
-    return <div className="flex justify-center py-20 text-gray-400">Carregando dados...</div>;
-  }
-
-  const tableData = balances.map(b => ({
+  const tableData = useMemo(() => balances.map(b => ({
+    id: b.ticker,
     data: { 
       ...b,
       total: b.qty * b.avgPrice
     },
     flags: { canEdit: false, canDelete: false }
-  }));
+  })), [balances]);
 
-  const tableColumns = {
+  const tableColumns = useMemo(() => ({
     ticker: "Ticker",
     qty: { label: "Quantidade", type: "number", align: "right" } as any,
     avgPrice: { label: "Preço Médio", type: "number", align: "right", formatOptions: { minimumFractionDigits: 2, maximumFractionDigits: 2 } } as any,
     total: { label: "Total", type: "number", align: "right", formatOptions: { minimumFractionDigits: 2, maximumFractionDigits: 2 } } as any
-  };
+  }), []);
+
+  if (isLoading) {
+    return <div className="flex justify-center py-20 text-gray-400">Carregando dados...</div>;
+  }
 
   return (
     <div className="space-y-6">

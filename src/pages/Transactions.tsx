@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useDatabase } from '@/src/context/DatabaseContext';
 import { Transaction } from '@/src/db/database';
 import { useDialog } from '@/src/context/DialogContext';
@@ -18,7 +18,7 @@ export default function Transactions() {
     id?: number;
     ticker: string;
     date: string;
-    type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT';
+    type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT' | 'DIV' | 'JCP';
     qty: string;
     price: string;
   }>({
@@ -29,7 +29,7 @@ export default function Transactions() {
     price: ''
   });
   
-  const handleOpenForm = (type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT' = 'BUY', editData?: Transaction) => {
+  const handleOpenForm = (type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT' | 'DIV' | 'JCP' = 'BUY', editData?: Transaction) => {
     if (editData) {
       setFormData({
         id: editData.id,
@@ -69,6 +69,7 @@ export default function Transactions() {
     }
 
     const isCorporateAction = formData.type === 'SPLIT' || formData.type === 'INPLIT';
+    
     if (!isCorporateAction && (!formData.price || parseFloat(formData.price) <= 0)) {
       showAlertDialog('Favor informar um preço unitário válido.');
       return;
@@ -128,16 +129,17 @@ export default function Transactions() {
   };
 
   console.log(transactions);
-  const tableData = transactions.map(tx => ({
+  const tableData = useMemo(() => transactions.map(tx => ({
+    id: tx.id,
     data: { 
       ...tx, 
       total: tx.qty * tx.price,
       status: tx.is_pending ? 'PENDENTE' : 'CONSOLIDADO'
     },
     flags: { canEdit: true, canDelete: true }
-  }));
+  })), [transactions]);
 
-  const tableColumns: Record<string, string | import('@/src/components/DashboardTable').ColumnSettings> = {
+  const tableColumns = useMemo((): Record<string, string | import('@/src/components/DashboardTable').ColumnSettings> => ({
     ticker: {
       label: "Ticker",
       filterable: true,
@@ -149,7 +151,7 @@ export default function Transactions() {
     price: { label: "Price", type: "number", align: "right", formatOptions: { minimumFractionDigits: 2, maximumFractionDigits: 2 } },
     total: { label: "Total", type: "number", align: "right", formatOptions: { minimumFractionDigits: 2, maximumFractionDigits: 2 } },
     status: "Status"
-  };
+  }), [assets]);
 
   const tableHeading = (
     <div className="flex justify-between items-center w-full">
@@ -226,6 +228,8 @@ export default function Transactions() {
               >
                 <option value="BUY">COMPRA (BUY)</option>
                 <option value="SELL">VENDA (SELL)</option>
+                <option value="DIV">DIVIDENDOS (DIV)</option>
+                <option value="JCP">JUROS S/ CAP. PRÓPRIO (JCP)</option>
                 <option value="SPLIT">DESDOBRAMENTO (SPLIT)</option>
                 <option value="INPLIT">AGRUPAMENTO (INPLIT)</option>
               </select>
@@ -243,7 +247,7 @@ export default function Transactions() {
               <p className="text-[10px] text-slate-400 mt-1">
                 {formData.type === 'INPLIT' && 'Fator de agrupamento (ex: 10 para 10:1)'}
                 {formData.type === 'SPLIT' && 'Fator de desdobramento (ex: 10 para 1:10)'}
-                {(formData.type === 'BUY' || formData.type === 'SELL') && 'Quantidade de cotas/ações'}
+                {(formData.type === 'BUY' || formData.type === 'SELL' || formData.type === 'DIV' || formData.type === 'JCP') && 'Quantidade de cotas/ações'}
               </p>
             </div>
           </div>

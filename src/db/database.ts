@@ -4,7 +4,7 @@ export interface Transaction {
   id?: number;
   ticker: string;
   date: string;
-  type: 'BUY' | 'SELL' | 'INPLIT' | 'SPLIT';
+  type: 'BUY' | 'SELL' | 'INPLIT' | 'SPLIT' | 'DIV' | 'JCP';
   qty: number;
   price: number;
   created_at?: string;
@@ -30,7 +30,7 @@ export interface Sell {
   avgCost: number;
   sellPrice: number;
   profit: number;
-  type: 'DAY' | 'SWING' | 'AJUSTE';
+  type: 'DAY' | 'SWING' | 'AJUSTE' | 'DIV' | 'JCP';
 }
 
 export interface Asset {
@@ -139,6 +139,18 @@ export async function _consolidateTrades(generateSells: boolean = true) {
           } else if (t.type === 'SELL') {
             sellQty += t.qty;
             sellTotal += t.qty * t.price;
+          } else if (t.type === 'DIV' || t.type === 'JCP') {
+            if (generateSells) {
+              await db.sells.add({
+                ticker,
+                date,
+                qty: t.qty,
+                avgCost: 0,
+                sellPrice: t.price,
+                profit: t.qty * t.price,
+                type: t.type
+              });
+            }
           }
         }
 

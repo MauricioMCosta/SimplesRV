@@ -93,7 +93,6 @@ export default function Dashboard() {
       <DataTableWrapper initialData={tableData}>
       <DashboardTable 
         heading="Posição das ações"
-        data={tableData}
         columns={tableColumns}
       />
       </DataTableWrapper>

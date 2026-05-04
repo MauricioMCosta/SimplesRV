@@ -26,13 +26,13 @@ interface TableRow {
 
 interface DashboardTableProps {
   heading: ReactNode;
-  data: TableRow[];
+  data?: TableRow[];
   columns: { [key: string]: string | ColumnSettings };
   onEdit?: (data: any) => void;
   onDelete?: (data: any) => void;
 }
 
-export function DashboardTable({ heading, data, columns, onEdit, onDelete }: DashboardTableProps) {
+export function DashboardTable({ heading, data = [], columns, onEdit, onDelete }: DashboardTableProps) {
   const context = useContext(DataTableContext);
   const columnKeys = Object.keys(columns);
 

@@ -174,7 +174,6 @@ export default function Assets() {
       <DataTableWrapper initialData={tableData} initialLimit={12}>
         <DashboardTable 
           heading={tableHeading}
-          data={tableData}
           columns={tableColumns}
           onEdit={handleEdit}
           onDelete={handleDelete}

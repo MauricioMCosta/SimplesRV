@@ -291,7 +291,6 @@ export default function Transactions() {
       <DataTableWrapper initialData={tableData} initialLimit={15}>
         <DashboardTable 
           heading={tableHeading}
-          data={tableData}
           columns={tableColumns}
           onEdit={handleEdit}
           onDelete={handleDelete}

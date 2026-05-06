@@ -3,23 +3,46 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { FileBarChart, Play, Loader2, Download, ChevronRight } from 'lucide-react';
 import { reports, ReportDefinition } from '../reports';
+import { getReportYears, getTaxReportData, formatTaxReportMarkdown } from '../reports/taxReport';
 
 export default function Reports() {
   const [selectedReport, setSelectedReport] = useState<ReportDefinition | null>(null);
   const [reportOutput, setReportOutput] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  const runReport = async (report: ReportDefinition) => {
+  useEffect(() => {
+    getReportYears().then(years => {
+      setAvailableYears(years);
+      if (years.length > 0) setSelectedYear(years[0]);
+    });
+  }, []);
+
+  const runReport = async (report: ReportDefinition, year?: number) => {
     setLoading(true);
     setSelectedReport(report);
     try {
-      const output = await report.execute();
+      let output = '';
+      if (report.id === 'annual-tax-report') {
+        const data = await getTaxReportData(year || selectedYear);
+        output = formatTaxReportMarkdown(data);
+      } else {
+        output = await report.execute();
+      }
       setReportOutput(output);
     } catch (error) {
       console.error('Falha ao gerar relatório:', error);
       setReportOutput('### Erro ao gerar relatório\nOcorreu uma falha durante o processamento dos dados.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleYearChange = (year: number) => {
+    setSelectedYear(year);
+    if (selectedReport?.id === 'annual-tax-report') {
+      runReport(selectedReport, year);
     }
   };
 
@@ -76,8 +99,26 @@ export default function Reports() {
               <div className="h-4 w-px bg-slate-200" />
               <span className="text-sm font-bold text-brand-sidebar">{selectedReport?.name}</span>
             </div>
-            <button
-              onClick={() => {
+
+            <div className="flex items-center gap-3">
+              {selectedReport?.id === 'annual-tax-report' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Ano:</span>
+                  <select
+                    className="bg-slate-50 border border-brand-line rounded px-2 py-1 text-xs font-bold text-brand-sidebar outline-none focus:border-brand-accent h-8"
+                    value={selectedYear}
+                    disabled={loading}
+                    onChange={(e) => handleYearChange(Number(e.target.value))}
+                  >
+                    {availableYears.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              <button
+                onClick={() => {
                    const blob = new Blob([reportOutput], { type: 'text/markdown' });
                    const url = URL.createObjectURL(blob);
                    const a = document.createElement('a');
@@ -91,8 +132,9 @@ export default function Reports() {
               Baixar .md
             </button>
           </div>
+        </div>
 
-          <div className="bg-white border border-brand-line p-10 rounded shadow-sm prose prose-slate prose-sm sm:prose-base max-w-none text-slate-700 report-content">
+        <div className="bg-white border border-brand-line p-10 rounded shadow-sm prose prose-slate prose-sm sm:prose-base max-w-none text-slate-700 report-content">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <Loader2 className="animate-spin text-brand-accent" size={32} />

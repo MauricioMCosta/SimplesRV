@@ -6,14 +6,18 @@ interface DatabaseState {
   positions: dbActions.Position[];
   sells: dbActions.Sell[];
   assets: dbActions.Asset[];
+  custodians: dbActions.Custodian[];
 }
 
 type Action = 
   | { 
-    type: 'SET_DATA', payload: { transactions: dbActions.Transaction[], 
-    positions: dbActions.Position[], 
-    sells: dbActions.Sell[],
-    assets: dbActions.Asset[] } 
+    type: 'SET_DATA', payload: { 
+      transactions: dbActions.Transaction[], 
+      positions: dbActions.Position[], 
+      sells: dbActions.Sell[],
+      assets: dbActions.Asset[],
+      custodians: dbActions.Custodian[]
+    } 
     };
 
 const databaseReducer = (state: DatabaseState, action: Action): DatabaseState => {
@@ -33,14 +37,21 @@ interface DatabaseContextType extends DatabaseState {
 const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined);
 
 export const DatabaseProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(databaseReducer, { transactions: [], positions: [], sells: [], assets: [] });
+  const [state, dispatch] = useReducer(databaseReducer, { 
+    transactions: [], 
+    positions: [], 
+    sells: [], 
+    assets: [],
+    custodians: []
+  });
 
   const refresh = useCallback(async () => {
     const transactions = await dbActions.getTransactions();
     const positions = await dbActions.getBalances();
     const sells = await dbActions.getSells();
     const assets = await dbActions.getAssets();
-    dispatch({ type: 'SET_DATA', payload: { transactions, positions, sells, assets } });
+    const custodians = await dbActions.getCustodians();
+    dispatch({ type: 'SET_DATA', payload: { transactions, positions, sells, assets, custodians } });
   }, []);
 
   useEffect(() => {
@@ -71,6 +82,18 @@ export const DatabaseProvider = ({ children }: { children: ReactNode }) => {
     },
     deleteAsset: async (id: number) => {
         await dbActions.deleteAsset(id);
+        await refresh();
+    },
+    addCustodian: async (c: any) => {
+        await dbActions.addCustodian(c);
+        await refresh();
+    },
+    updateCustodian: async (id: number, data: any) => {
+        await dbActions.updateCustodian(id, data);
+        await refresh();
+    },
+    deleteCustodian: async (id: number) => {
+        await dbActions.deleteCustodian(id);
         await refresh();
     },
     forceRecalculate: async (tickers?: string[]) => {

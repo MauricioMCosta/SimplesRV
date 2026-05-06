@@ -1,4 +1,4 @@
-import { LucideIcon, LayoutDashboard, ListOrdered, Settings, BadgeDollarSign, Database, BookOpen, Info, ChevronLeft, ChevronRight, FileBarChart } from 'lucide-react';
+import { LucideIcon, LayoutDashboard, ListOrdered, Settings, BadgeDollarSign, Database, BookOpen, Info, ChevronLeft, ChevronRight, FileBarChart, ShieldCheck } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
@@ -14,6 +14,7 @@ interface NavItem {
 const topNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
   { label: 'Ativos', href: '/assets', icon: Database },
+  { label: 'Custodiantes', href: '/custodians', icon: ShieldCheck },
   { label: 'Transações', href: '/transactions', icon: ListOrdered },
   { label: 'Relatórios', href: '/reports', icon: FileBarChart },
 ];

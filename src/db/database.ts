@@ -38,7 +38,15 @@ export interface Asset {
   ticker: string;
   description: string;
   type: string;
+  custodianCnpj?: string;
   is_pending?: boolean;
+}
+
+export interface Custodian {
+  id?: number;
+  cnpj: string;
+  name: string;
+  status?: 'PENDING' | 'CONFIRMED';
 }
 
 export class AppDatabase extends Dexie {
@@ -47,15 +55,17 @@ export class AppDatabase extends Dexie {
   positions!: Table<Position>;
   sells!: Table<Sell>;
   assets!: Table<Asset>;
+  custodians!: Table<Custodian>;
 
   constructor() {
     super('FinDB');
-    this.version(6).stores({
+    this.version(7).stores({
       transactions: '++id, ticker, date, type, [ticker+date]',
       metadata: 'key',
       positions: 'ticker',
       sells: '++id, ticker, date, type',
-      assets: '++id, &ticker, is_pending'
+      assets: '++id, &ticker, custodianCnpj, is_pending',
+      custodians: '++id, &cnpj, status'
     });
   }
 }
@@ -270,9 +280,24 @@ export async function getTransactions(): Promise<Transaction[]> {
   return await db.transactions.orderBy(['ticker','date']).reverse().toArray();
 }
 
+async function ensureCustodianExists(cnpj: string | undefined) {
+  if (!cnpj) return;
+  const normalizedCnpj = cnpj.replace(/\D/g, '');
+  if (!normalizedCnpj) return;
+  
+  const existing = await db.custodians.where('cnpj').equals(normalizedCnpj).first();
+  if (!existing) {
+    await db.custodians.add({
+      cnpj: normalizedCnpj,
+      name: 'Pendente: ' + normalizedCnpj,
+      status: 'PENDING'
+    });
+  }
+}
+
 export async function addTransaction(t: Transaction) {
   const ticker = t.ticker.toUpperCase();
-  await db.transaction('rw', [db.transactions, db.metadata, db.positions, db.sells, db.assets], async () => {
+  await db.transaction('rw', [db.transactions, db.metadata, db.positions, db.sells, db.assets, db.custodians], async () => {
     
     // Check if asset exists, if not create it pending
     const existingAsset = await db.assets.where('ticker').equals(ticker).first();
@@ -309,7 +334,7 @@ export async function addTransaction(t: Transaction) {
 }
 
 export async function updateTransaction(id: number, t: Partial<Transaction>) {
-  await db.transaction('rw', [db.transactions, db.metadata, db.positions, db.sells, db.assets], async () => {
+  await db.transaction('rw', [db.transactions, db.metadata, db.positions, db.sells, db.assets, db.custodians], async () => {
     const existing = await db.transactions.get(id);
     if (!existing) return;
 
@@ -410,34 +435,38 @@ export async function exportDB() {
   const positions = await db.positions.toArray();
   const sells = await db.sells.toArray();
   const assets = await db.assets.toArray();
-  return JSON.stringify({ transactions, metadata, positions, sells, assets }, null, 2);
+  const custodians = await db.custodians.toArray();
+  return JSON.stringify({ transactions, metadata, positions, sells, assets, custodians }, null, 2);
 }
 
 export async function importDB(data: string) {
   const parsed = JSON.parse(data);
-  await db.transaction('rw', [db.transactions, db.metadata, db.positions, db.sells, db.assets], async () => {
+  await db.transaction('rw', [db.transactions, db.metadata, db.positions, db.sells, db.assets, db.custodians], async () => {
     await db.transactions.clear();
     await db.metadata.clear();
     await db.positions.clear();
     await db.sells.clear();
     await db.assets.clear();
+    await db.custodians.clear();
     if (parsed.transactions) await db.transactions.bulkAdd(parsed.transactions);
     if (parsed.metadata) await db.metadata.bulkAdd(parsed.metadata);
     if (parsed.positions) await db.positions.bulkAdd(parsed.positions);
     if (parsed.sells) await db.sells.bulkAdd(parsed.sells);
     if (parsed.assets) await db.assets.bulkAdd(parsed.assets);
+    if (parsed.custodians) await db.custodians.bulkAdd(parsed.custodians);
   });
   // No auto recalculate here unless needed, but importing often means using the saved state.
   // Although recalculating might ensure consistency if the user messed with the JSON.
 }
 
 export async function resetDB() {
-  await db.transaction('rw', [db.transactions, db.metadata, db.positions, db.sells, db.assets], async () => {
+  await db.transaction('rw', [db.transactions, db.metadata, db.positions, db.sells, db.assets, db.custodians], async () => {
     await db.transactions.clear();
     await db.metadata.clear();
     await db.positions.clear();
     await db.sells.clear();
     await db.assets.clear();
+    await db.custodians.clear();
   });
 }
 
@@ -447,14 +476,41 @@ export async function getAssets(): Promise<Asset[]> {
 }
 
 export async function addAsset(a: Omit<Asset, 'id'>) {
-  await db.assets.add({ ...a, ticker: a.ticker.toUpperCase() });
+  await db.transaction('rw', [db.assets, db.custodians], async () => {
+    if (a.custodianCnpj) {
+      await ensureCustodianExists(a.custodianCnpj);
+    }
+    await db.assets.add({ ...a, ticker: a.ticker.toUpperCase() });
+  });
 }
 
 export async function updateAsset(id: number, data: Partial<Asset>) {
-  if (data.ticker) data.ticker = data.ticker.toUpperCase();
-  await db.assets.update(id, data);
+  await db.transaction('rw', [db.assets, db.custodians], async () => {
+    if (data.ticker) data.ticker = data.ticker.toUpperCase();
+    if (data.custodianCnpj) {
+      await ensureCustodianExists(data.custodianCnpj);
+    }
+    await db.assets.update(id, data);
+  });
 }
 
 export async function deleteAsset(id: number) {
   await db.assets.delete(id);
+}
+
+// Custodian functions
+export async function getCustodians(): Promise<Custodian[]> {
+  return await db.custodians.orderBy('cnpj').toArray();
+}
+
+export async function addCustodian(c: Omit<Custodian, 'id'>) {
+  await db.custodians.add(c);
+}
+
+export async function updateCustodian(id: number, data: Partial<Custodian>) {
+  await db.custodians.update(id, data);
+}
+
+export async function deleteCustodian(id: number) {
+  await db.custodians.delete(id);
 }

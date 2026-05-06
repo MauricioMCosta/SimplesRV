@@ -7,7 +7,7 @@ import { Modal } from '@/src/components/Modal';
 import { DataTableWrapper } from '@/src/components/DataTableWrapper';
 
 export default function Assets() {
-  const { assets, db } = useDatabase();
+  const { assets, custodians, db } = useDatabase();
   const { addAsset, updateAsset, deleteAsset } = db;
   const { showAlertDialog, showConfirmDialog } = useDialog();
   const [showForm, setShowForm] = useState(false);
@@ -16,11 +16,12 @@ export default function Assets() {
   const [formData, setFormData] = useState({
     ticker: '',
     description: '',
-    type: 'AÇÕES'
+    type: 'AÇÕES',
+    custodianCnpj: ''
   });
 
   const resetForm = () => {
-    setFormData({ ticker: '', description: '', type: 'AÇÕES' });
+    setFormData({ ticker: '', description: '', type: 'AÇÕES', custodianCnpj: '' });
     setEditingId(null);
   };
 
@@ -29,7 +30,8 @@ export default function Assets() {
       setFormData({
         ticker: asset.ticker || '',
         description: asset.description || '',
-        type: asset.type || 'AÇÕES'
+        type: asset.type || 'AÇÕES',
+        custodianCnpj: asset.custodianCnpj || ''
       });
       setEditingId(asset.id);
     } else {
@@ -73,19 +75,24 @@ export default function Assets() {
     handleOpenForm(row);
   };
 
-  const tableData = useMemo(() => assets.map(asset => ({
-    id: asset.id,
-    data: { 
-      ...asset,
-      status: asset.is_pending ? 'PENDENTE' : 'OK'
-    },
-    flags: { canEdit: true, canDelete: true }
-  })), [assets]);
+  const tableData = useMemo(() => assets.map(asset => {
+    const custodian = custodians.find(c => c.cnpj === asset.custodianCnpj);
+    return {
+      id: asset.id,
+      data: { 
+        ...asset,
+        custodianName: custodian ? custodian.name : (asset.custodianCnpj || '-'),
+        status: asset.is_pending ? 'PENDENTE' : 'OK'
+      },
+      flags: { canEdit: true, canDelete: true }
+    };
+  }), [assets, custodians]);
 
   const tableColumns = useMemo(() => ({
     ticker: "Ticker",
     description: "Descrição",
     type: "Tipo",
+    custodianName: "Custodiante",
     status: "Status"
   }), []);
 
@@ -151,6 +158,17 @@ export default function Assets() {
               <option value="CRYPTO">Criptomoeda</option>
               <option value="OUTROS">Outros</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">CNPJ do Custodiante</label>
+            <input
+              type="text"
+              placeholder="Ex: 00.000.000/0000-00"
+              className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
+              value={formData.custodianCnpj}
+              onChange={e => setFormData({ ...formData, custodianCnpj: e.target.value })}
+            />
           </div>
 
           <div className="pt-4 border-t border-brand-line flex justify-end gap-3">

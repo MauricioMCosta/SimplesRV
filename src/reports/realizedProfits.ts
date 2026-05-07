@@ -18,14 +18,20 @@ export const realizedProfitsReport: ReportDefinition = {
     const totalProfit = sells.reduce((acc, curr) => acc + curr.profit, 0);
     const dayTradeProfit = sells.filter(s => s.type === 'DAY').reduce((acc, curr) => acc + curr.profit, 0);
     const swingTradeProfit = sells.filter(s => s.type === 'SWING').reduce((acc, curr) => acc + curr.profit, 0);
+    const divProfit = sells.filter(s => s.type === 'DIV').reduce((acc, curr) => acc + curr.profit, 0);
+    const jcpProfit = sells.filter(s => s.type === 'JCP').reduce((acc, curr) => acc + curr.profit, 0);
+    const rendProfit = sells.filter(s => s.type === 'REND').reduce((acc, curr) => acc + curr.profit, 0);
 
-    let markdown = `# Relatório de Lucros Realizados\n\n`;
+    let markdown = `# Relatório de Lucros e Rendimentos Realizados\n\n`;
     
     markdown += `### Resumo Geral\n\n`;
-    markdown += `| Categoria | Lucro/Prejuízo Total |\n`;
+    markdown += `| Categoria | Lucro/Rendimento Total |\n`;
     markdown += `| :--- | :---: |\n`;
     markdown += `| **Day Trade** | R$ ${dayTradeProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} |\n`;
     markdown += `| **Swing Trade** | R$ ${swingTradeProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} |\n`;
+    if (divProfit > 0) markdown += `| **Dividendos** | R$ ${divProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} |\n`;
+    if (jcpProfit > 0) markdown += `| **JCP** | R$ ${jcpProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} |\n`;
+    if (rendProfit > 0) markdown += `| **Rendimentos** | R$ ${rendProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} |\n`;
     markdown += `| **TOTAL ACUMULADO** | **R$ ${totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** |\n\n`;
 
     markdown += `### Detalhamento das Operações\n\n`;

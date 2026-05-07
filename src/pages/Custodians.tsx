@@ -112,31 +112,6 @@ export default function Custodians() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="card flex items-center gap-4 bg-amber-50 border-amber-100">
-          <div className="p-3 bg-amber-100 text-amber-600 rounded-lg">
-            <ShieldAlert size={20} />
-          </div>
-          <div>
-            <h4 className="text-xs font-bold text-amber-900 uppercase tracking-tighter">Pendentes</h4>
-            <p className="text-2xl font-bold text-amber-600 font-mono">
-              {custodians.filter(c => c.status === 'PENDING').length}
-            </p>
-          </div>
-        </div>
-        <div className="card flex items-center gap-4 bg-green-50 border-green-100">
-          <div className="p-3 bg-green-100 text-green-600 rounded-lg">
-            <ShieldCheck size={20} />
-          </div>
-          <div>
-            <h4 className="text-xs font-bold text-green-900 uppercase tracking-tighter">Confirmados</h4>
-            <p className="text-2xl font-bold text-green-600 font-mono">
-              {custodians.filter(c => c.status === 'CONFIRMED').length}
-            </p>
-          </div>
-        </div>
-      </div>
-
       <Modal 
         isOpen={showForm} 
         onClose={() => { setShowForm(false); resetForm(); }} 

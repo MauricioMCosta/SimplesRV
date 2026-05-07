@@ -5,44 +5,41 @@ import { DashboardTable } from '@/src/components/DashboardTable';
 import { DataTableWrapper } from '../components/DataTableWrapper';
 
 export default function Dashboard() {
-  const { db } = useDatabase();
-  const [balances, setBalances] = useState<{ ticker: string; qty: number; avgPrice: number }[]>([]);
+  const { positions, transactions, assets, custodians, db } = useDatabase();
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [pendingCount, setPendingCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  async function loadData() {
+  async function loadMeta() {
     try {
-      const [b, lu, pc] = await Promise.all([db.getBalances(), db.getLastUpdated(), db.countPendingTransactions()]);
-      setBalances(b as any);
+      const lu = await db.getLastUpdated();
       setLastUpdated(lu);
-      setPendingCount(pc);
     } catch (err) {
-      console.error('Failed to load dashboard data', err);
+      console.error('Failed to load dashboard meta', err);
     } finally {
       setIsLoading(false);
     }
   }
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 2000);
-    return () => clearInterval(interval);
-  }, [db]);
+    loadMeta();
+  }, [db, positions]);
 
   const handleConsolidate = async () => {
     await db.consolidateTrades();
-    loadData();
   };
 
-  const tableData = useMemo(() => balances.map(b => ({
+  const pendingTransactions = useMemo(() => transactions.filter(t => t.is_pending).length, [transactions]);
+  const pendingAssets = useMemo(() => assets.filter(a => a.is_pending).length, [assets]);
+  const pendingCustodians = useMemo(() => custodians.filter(c => c.status === 'PENDING').length, [custodians]);
+
+  const tableData = useMemo(() => positions.map(b => ({
     id: b.ticker,
     data: { 
       ...b,
       total: b.qty * b.avgPrice
     },
     flags: { canEdit: false, canDelete: false }
-  })), [balances]);
+  })), [positions]);
 
   const tableColumns = useMemo(() => ({
     ticker: "Ticker",
@@ -59,35 +56,36 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <DashboardCard
-          title="Database Status"
-          content="🟢 Conectado"
-          footer={lastUpdated ? `Updated: ${new Date(lastUpdated).toLocaleString()}` : 'Updated: N/A'}
-        />
-
-        <DashboardCard
-          title="Assets Total"
-          content={`${balances.length} Tickers`}
-          footer="Portfolio Ativo"
-        />
-
-        <DashboardCard
-          title="Armazenamento"
-          content="Dexie (IndexedDB)"
-          footer="Estabilidade: Optimized"
-        />
-
-        <DashboardCard
-          title="Ativos pendentes"
-          content={pendingCount > 0 ? `🟡 ${pendingCount} ativos pendentes` : "🟢 Ok"}
+          title="Consolidação"
+          content={pendingTransactions > 0 ? `🟡 ${pendingTransactions} pendentes` : "🟢 Atualizado"}
           footer={
-             (pendingCount>0) && <button
-              onClick={handleConsolidate}
-              disabled={pendingCount === 0}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md disabled:bg-gray-400 hover:bg-blue-700 transition"
-            >
-              Consolidar
-            </button>}
-          
+             (pendingTransactions > 0) ? (
+              <button
+                onClick={handleConsolidate}
+                className="bg-brand-sidebar text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider hover:bg-brand-ink transition shadow-sm"
+              >
+                Consolidar
+              </button>
+             ) : (lastUpdated ? `Sincronizado: ${new Date(lastUpdated).toLocaleTimeString()}` : 'Pronto')
+          }
+        />
+
+        <DashboardCard
+          title="Ativos Pendentes"
+          content={pendingAssets > 0 ? `🟡 ${pendingAssets} por completar` : "🟢 OK"}
+          footer={pendingAssets > 0 ? "Verifique a aba Ativos" : "Todos dados ok"}
+        />
+
+        <DashboardCard
+          title="Custodias Pendentes"
+          content={pendingCustodians > 0 ? `🟡 ${pendingCustodians} pendentes` : "🟢 OK"}
+          footer={pendingCustodians > 0 ? "Verifique a aba Custodiantes" : "Tudo conferido"}
+        />
+
+        <DashboardCard
+          title="Resumo Carteira"
+          content={`${positions.length} Tickers`}
+          footer={`Total: R$ ${positions.reduce((acc, p) => acc + (p.qty * p.avgPrice), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
         />
       </div>
       <DataTableWrapper initialData={tableData}>

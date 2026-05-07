@@ -18,7 +18,7 @@ export default function Transactions() {
     id?: number;
     ticker: string;
     date: string;
-    type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT' | 'DIV' | 'JCP';
+    type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT' | 'DIV' | 'JCP' | 'REND';
     qty: string;
     price: string;
   }>({
@@ -29,7 +29,7 @@ export default function Transactions() {
     price: ''
   });
   
-  const handleOpenForm = (type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT' | 'DIV' | 'JCP' = 'BUY', editData?: Transaction) => {
+  const handleOpenForm = (type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT' | 'DIV' | 'JCP' | 'REND' = 'BUY', editData?: Transaction) => {
     if (editData) {
       setFormData({
         id: editData.id,
@@ -230,6 +230,7 @@ export default function Transactions() {
                 <option value="SELL">VENDA (SELL)</option>
                 <option value="DIV">DIVIDENDOS (DIV)</option>
                 <option value="JCP">JUROS S/ CAP. PRÓPRIO (JCP)</option>
+                <option value="REND">RENDIMENTOS (REND)</option>
                 <option value="SPLIT">DESDOBRAMENTO (SPLIT)</option>
                 <option value="INPLIT">AGRUPAMENTO (INPLIT)</option>
               </select>
@@ -247,7 +248,7 @@ export default function Transactions() {
               <p className="text-[10px] text-slate-400 mt-1">
                 {formData.type === 'INPLIT' && 'Fator de agrupamento (ex: 10 para 10:1)'}
                 {formData.type === 'SPLIT' && 'Fator de desdobramento (ex: 10 para 1:10)'}
-                {(formData.type === 'BUY' || formData.type === 'SELL' || formData.type === 'DIV' || formData.type === 'JCP') && 'Quantidade de cotas/ações'}
+                {(formData.type === 'BUY' || formData.type === 'SELL' || formData.type === 'DIV' || formData.type === 'JCP' || formData.type === 'REND') && 'Quantidade de cotas/ações'}
               </p>
             </div>
           </div>

@@ -86,16 +86,15 @@ export async function getTaxReportData(year: number): Promise<TaxReportData> {
             earnings.div += (t.qty * t.price);
           } else if (t.type === 'JCP') {
             earnings.jcp += (t.qty * t.price);
+          } else if (t.type === 'REND') {
+            earnings.rend += (t.qty * t.price);
           }
-          // Assuming 'REND' or something for rendimentos if we had it, 
-          // but based on DB schema we only have DIV and JCP.
-          // I will treat DIV as general earnings/dividends for now.
         }
       }
     }
 
     // Only include if there was a position in prev year, current year, or earnings in current year
-    if (prevYearQty > 0 || currentQty > 0 || earnings.div > 0 || earnings.jcp > 0) {
+    if (prevYearQty > 0 || currentQty > 0 || earnings.div > 0 || earnings.jcp > 0 || earnings.rend > 0) {
       items.push({
         ticker,
         description: asset?.description || 'Sem descrição',
@@ -150,13 +149,16 @@ export function formatTaxReportMarkdown(data: TaxReportData): string {
     markdown += `- **31/12/${data.year - 1}:** ${item.prevYearQty.toLocaleString('pt-BR')} unidades\n`;
     markdown += `- **31/12/${data.year}:** ${item.currentYearQty.toLocaleString('pt-BR')} unidades - **Preço Médio:** R$ ${item.currentYearAvgPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} - **Total:** R$ ${(item.currentYearQty * item.currentYearAvgPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n\n`;
 
-    if (item.earnings.div > 0 || item.earnings.jcp > 0) {
+    if (item.earnings.div > 0 || item.earnings.jcp > 0 || item.earnings.rend > 0) {
       markdown += `#### 💰 Rendimentos Recebidos em ${data.year}\n`;
       if (item.earnings.div > 0) {
-        markdown += `- **Dividendos / Rendimentos:** R$ ${item.earnings.div.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+        markdown += `- **Dividendos:** R$ ${item.earnings.div.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
       }
       if (item.earnings.jcp > 0) {
         markdown += `- **Juros sobre Capital Próprio (JCP):** R$ ${item.earnings.jcp.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+      }
+      if (item.earnings.rend > 0) {
+        markdown += `- **Rendimentos:** R$ ${item.earnings.rend.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
       }
       markdown += `\n`;
     }

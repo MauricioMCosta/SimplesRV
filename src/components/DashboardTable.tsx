@@ -1,38 +1,10 @@
-import { ReactNode, useState, useContext } from 'react';
+import { useState, useContext } from 'react';
 import { cn } from '@/src/lib/utils';
 import { Trash2, Edit2, ChevronLeft, ChevronRight, Search, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { DataTableContext } from '../context/DataTableContext';
+import { ColumnSettings, DashboardTableProps } from './DashboardTable.types';
 
-export interface ColumnSettings {
-  label: string;
-  type?: 'string' | 'number';
-  align?: 'left' | 'right';
-  formatOptions?: Intl.NumberFormatOptions;
-  filterable?: boolean;
-  filterOptions?: { label: string; value: string }[];
-}
-
-interface RowData {
-  [key: string]: any;
-}
-
-interface TableRow {
-  data: RowData;
-  flags?: {
-    canEdit?: boolean;
-    canDelete?: boolean;
-  };
-}
-
-interface DashboardTableProps {
-  heading: ReactNode;
-  data?: TableRow[];
-  columns: { [key: string]: string | ColumnSettings };
-  onEdit?: (data: any) => void;
-  onDelete?: (data: any) => void;
-}
-
-export function DashboardTable({ heading, data = [], columns, onEdit, onDelete }: DashboardTableProps) {
+export function DashboardTable({ heading, data = [], columns, onEdit, onDelete, onColumnRender }: DashboardTableProps) {
   const context = useContext(DataTableContext);
   const columnKeys = Object.keys(columns);
 
@@ -159,38 +131,18 @@ export function DashboardTable({ heading, data = [], columns, onEdit, onDelete }
                       displayVal = val.toLocaleString(undefined, formatOptions);
                     }
 
+                    const customRender = onColumnRender ? onColumnRender(row.data, key, val) : null;
+
                     return (
                       <td 
                         key={key} 
                         className={cn(
                           "text-[12px]",
                           align === 'right' && "text-right font-mono",
-                          key === 'ticker' && "font-bold text-brand-ink font-mono",
-                          key === 'date' && "text-[11px] text-slate-500 font-mono italic",
-                          key === 'balance' && val >= 0 ? "text-green-600" : key === 'balance' && "text-red-600",
-                          key === 'profit' && val >= 0 ? "text-green-600 font-bold" : key === 'profit' && "text-red-600 font-bold"
+                          customRender?.cellStyle
                         )}
                       >
-                        {key === 'type' ? (
-                           <span className={cn(
-                            "text-[9px] font-bold px-1.5 py-0.5 rounded",
-                            val === 'BUY' || val === 'DAY' ? "bg-green-100 text-green-700" : 
-                            val === 'SELL' || val === 'SWING' ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"
-                          )}>
-                            {val}
-                          </span>
-                        ) : key === 'status' ? (
-                          <span className={cn(
-                            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                            val === 'CONSOLIDADO' ? "bg-blue-100 text-blue-700" : 
-                            val === 'OK' ? "bg-green-100 text-green-700" : 
-                            "bg-amber-100 text-amber-700"
-                          )}>
-                            {val}
-                          </span>
-                        ) : (
-                          displayVal
-                        )}
+                        {customRender?.cellValue !== undefined ? customRender.cellValue : displayVal}
                       </td>
                     );
                   })}

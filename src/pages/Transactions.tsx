@@ -1,12 +1,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useDatabase } from '@/src/context/DatabaseContext';
-import { Transaction } from '@/src/db/database';
+import { Transaction } from '@/src/db/database.types';
+import { TransactionType, TransactionFormData } from './Transactions.types';
 import { useDialog } from '@/src/context/DialogContext';
 import { Plus, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { DashboardTable } from '@/src/components/DashboardTable';
 import { Modal } from '@/src/components/Modal';
 import { SRVAutoComplete } from '@/src/components/SRVAutoComplete';
+import { ColumnSettings } from '@/src/components/DashboardTable.types';
 import { DataTableWrapper } from '@/src/components/DataTableWrapper';
 
 export default function Transactions() {
@@ -14,14 +16,7 @@ export default function Transactions() {
   const { addTransaction, deleteTransaction, getPosition } = db;
   const { showAlertDialog, showConfirmDialog } = useDialog();
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState<{
-    id?: number;
-    ticker: string;
-    date: string;
-    type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT' | 'DIV' | 'JCP' | 'REND';
-    qty: string;
-    price: string;
-  }>({
+  const [formData, setFormData] = useState<TransactionFormData>({
     ticker: '',
     date: new Date().toISOString().split('T')[0],
     type: 'BUY',
@@ -29,7 +24,7 @@ export default function Transactions() {
     price: ''
   });
   
-  const handleOpenForm = (type: 'BUY' | 'SELL' | 'SPLIT' | 'INPLIT' | 'DIV' | 'JCP' | 'REND' = 'BUY', editData?: Transaction) => {
+  const handleOpenForm = (type: TransactionType = 'BUY', editData?: Transaction) => {
     if (editData) {
       setFormData({
         id: editData.id,
@@ -139,7 +134,7 @@ export default function Transactions() {
     flags: { canEdit: true, canDelete: true }
   })), [transactions]);
 
-  const tableColumns = useMemo((): Record<string, string | import('@/src/components/DashboardTable').ColumnSettings> => ({
+  const tableColumns = useMemo((): Record<string, string | ColumnSettings> => ({
     ticker: {
       label: "Ticker",
       filterable: true,
@@ -185,6 +180,43 @@ export default function Transactions() {
       </div>
     </div>
   );
+
+  const handleColumnRender = (row: any, key: string, val: any) => {
+    if (key === 'ticker') {
+      return { cellStyle: "font-bold text-brand-ink font-mono" };
+    }
+    if (key === 'date') {
+      return { cellStyle: "text-[11px] text-slate-500 font-mono italic" };
+    }
+    if (key === 'type') {
+      return {
+        cellValue: (
+          <span className={cn(
+            "text-[9px] font-bold px-1.5 py-0.5 rounded",
+            val === 'BUY' || val === 'DAY' ? "bg-green-100 text-green-700" : 
+            val === 'SELL' || val === 'SWING' ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"
+          )}>
+            {val}
+          </span>
+        )
+      };
+    }
+    if (key === 'status') {
+      return {
+        cellValue: (
+          <span className={cn(
+            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+            val === 'CONSOLIDADO' ? "bg-blue-100 text-blue-700" : 
+            val === 'OK' ? "bg-green-100 text-green-700" : 
+            "bg-amber-100 text-amber-700"
+          )}>
+            {val}
+          </span>
+        )
+      };
+    }
+    return null;
+  };
 
   const tickerOptions = Array.from(new Set(assets.map(a => a.ticker.toUpperCase()))).sort();
 
@@ -295,6 +327,7 @@ export default function Transactions() {
           columns={tableColumns}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onColumnRender={handleColumnRender}
         />
       </DataTableWrapper>
     </div>

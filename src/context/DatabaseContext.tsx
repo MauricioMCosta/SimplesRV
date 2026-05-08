@@ -1,24 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
 import * as dbActions from '@/src/db/database';
-
-interface DatabaseState {
-  transactions: dbActions.Transaction[];
-  positions: dbActions.Position[];
-  sells: dbActions.Sell[];
-  assets: dbActions.Asset[];
-  custodians: dbActions.Custodian[];
-}
-
-type Action = 
-  | { 
-    type: 'SET_DATA', payload: { 
-      transactions: dbActions.Transaction[], 
-      positions: dbActions.Position[], 
-      sells: dbActions.Sell[],
-      assets: dbActions.Asset[],
-      custodians: dbActions.Custodian[]
-    } 
-    };
+import { DatabaseState, Action, DatabaseContextType } from './DatabaseContext.types';
 
 const databaseReducer = (state: DatabaseState, action: Action): DatabaseState => {
   switch (action.type) {
@@ -28,11 +10,6 @@ const databaseReducer = (state: DatabaseState, action: Action): DatabaseState =>
       return state;
   }
 };
-
-interface DatabaseContextType extends DatabaseState {
-  db: typeof dbActions;
-  refresh: () => Promise<void>;
-}
 
 const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined);
 

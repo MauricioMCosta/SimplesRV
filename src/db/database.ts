@@ -1,53 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-
-export interface Transaction {
-  id?: number;
-  ticker: string;
-  date: string;
-  type: 'BUY' | 'SELL' | 'INPLIT' | 'SPLIT' | 'DIV' | 'JCP' | 'REND';
-  qty: number;
-  price: number;
-  created_at?: string;
-  is_pending?: boolean;
-}
-
-export interface Metadata {
-  key: string;
-  value: string;
-}
-
-export interface Position {
-  ticker: string;
-  qty: number;
-  avgPrice: number;
-}
-
-export interface Sell {
-  id?: number;
-  ticker: string;
-  date: string;
-  qty: number;
-  avgCost: number;
-  sellPrice: number;
-  profit: number;
-  type: 'DAY' | 'SWING' | 'AJUSTE' | 'DIV' | 'JCP' | 'REND';
-}
-
-export interface Asset {
-  id?: number;
-  ticker: string;
-  description: string;
-  type: string;
-  custodianCnpj?: string;
-  is_pending?: boolean;
-}
-
-export interface Custodian {
-  id?: number;
-  cnpj: string;
-  name: string;
-  status?: 'PENDING' | 'CONFIRMED';
-}
+import { Transaction, Metadata, Position, Sell, Asset, Custodian } from './database.types';
 
 export class AppDatabase extends Dexie {
   transactions!: Table<Transaction>;
@@ -59,13 +11,13 @@ export class AppDatabase extends Dexie {
 
   constructor() {
     super('FinDB');
-    this.version(7).stores({
+    this.version(8).stores({
       transactions: '++id, ticker, date, type, [ticker+date]',
       metadata: 'key',
       positions: 'ticker',
       sells: '++id, ticker, date, type',
       assets: '++id, &ticker, custodianCnpj, is_pending',
-      custodians: '++id, &cnpj, status'
+      custodians: '++id, &cnpj, is_pending'
     });
   }
 }
@@ -96,169 +48,169 @@ export async function forceRecalculate(tickers?: string[]) {
       await db.positions.clear();
       await db.sells.clear();
     }
-    
+
     // Perform consolidation
     await _consolidateTrades();
   });
 }
 
 export async function _consolidateTrades(generateSells: boolean = true) {
-    const pending = await db.transactions
-      .filter(t=> t.is_pending ?? false)
-      .toArray();
+  const pending = await db.transactions
+    .filter(t => t.is_pending ?? false)
+    .toArray();
 
-    if (pending.length === 0) return;
-    
-      // Identify all unique tickers that have pending transactions
-      const pendingTickers = Array.from(new Set(pending.map(t => t.ticker.toUpperCase())));
+  if (pending.length === 0) return;
 
-      for (const ticker of pendingTickers) {
-        // Reset consolidated state for this ticker
-        await db.positions.delete(ticker);
-        if (generateSells) {
-          await db.sells.where('ticker').equals(ticker).delete();
-        }
+  // Identify all unique tickers that have pending transactions
+  const pendingTickers = Array.from(new Set(pending.map(t => t.ticker.toUpperCase())));
 
-        // Process ALL transactions for this ticker to ensure full history is considered
-        const tickerTxs = await db.transactions
-          .where('ticker')
-          .equals(ticker)
-          .sortBy('date');
-        
-        const byDate: Record<string, Transaction[]> = {};
-        tickerTxs.forEach(t => {
-          if (!byDate[t.date]) byDate[t.date] = [];
-          byDate[t.date].push(t);
-        });
+  for (const ticker of pendingTickers) {
+    // Reset consolidated state for this ticker
+    await db.positions.delete(ticker);
+    if (generateSells) {
+      await db.sells.where('ticker').equals(ticker).delete();
+    }
 
-        let pos: Position = { ticker, qty: 0, avgPrice: 0 };
+    // Process ALL transactions for this ticker to ensure full history is considered
+    const tickerTxs = await db.transactions
+      .where('ticker')
+      .equals(ticker)
+      .sortBy('date');
 
-        const dates = Object.keys(byDate).sort();
+    const byDate: Record<string, Transaction[]> = {};
+    tickerTxs.forEach(t => {
+      if (!byDate[t.date]) byDate[t.date] = [];
+      byDate[t.date].push(t);
+    });
 
-      for (const date of dates) {
-        const dayTxs = byDate[date];
-        let buyQty = 0;
-        let buyTotal = 0;
-        let sellQty = 0;
-        let sellTotal = 0;
+    let pos: Position = { ticker, qty: 0, avgPrice: 0 };
 
-        for (const t of dayTxs) {
-          if (t.type === 'BUY') {
-            buyQty += t.qty;
-            buyTotal += t.qty * t.price;
-          } else if (t.type === 'SELL') {
-            sellQty += t.qty;
-            sellTotal += t.qty * t.price;
-          } else if (t.type === 'DIV' || t.type === 'JCP' || t.type === 'REND') {
-            if (generateSells) {
-              await db.sells.add({
-                ticker,
-                date,
-                qty: t.qty,
-                avgCost: 0,
-                sellPrice: t.price,
-                profit: t.qty * t.price,
-                type: t.type
-              });
-            }
-          }
-        }
+    const dates = Object.keys(byDate).sort();
 
-        const avgBuyPrice = buyQty > 0 ? buyTotal / buyQty : 0;
-        const avgSellPrice = sellQty > 0 ? sellTotal / sellQty : 0;
+    for (const date of dates) {
+      const dayTxs = byDate[date];
+      let buyQty = 0;
+      let buyTotal = 0;
+      let sellQty = 0;
+      let sellTotal = 0;
 
-        const dayTradeQty = Math.min(buyQty, sellQty);
-        if (generateSells && dayTradeQty > 0) {
-          const profit = (avgSellPrice - avgBuyPrice) * dayTradeQty;
-          await db.sells.add({
-            ticker,
-            date,
-            qty: dayTradeQty,
-            avgCost: avgBuyPrice,
-            sellPrice: avgSellPrice,
-            profit,
-            type: 'DAY'
-          });
-        }
-
-        const netBuy = buyQty - dayTradeQty;
-        const netSell = sellQty - dayTradeQty;
-
-        if (netBuy > 0) {
-          const prevTotal = pos.qty * pos.avgPrice;
-          const currentTotal = netBuy * avgBuyPrice;
-          pos.qty += netBuy;
-          pos.avgPrice = pos.qty > 0 ? (prevTotal + currentTotal) / pos.qty : 0;
-        }
-
-        if (netSell > 0) {
+      for (const t of dayTxs) {
+        if (t.type === 'BUY') {
+          buyQty += t.qty;
+          buyTotal += t.qty * t.price;
+        } else if (t.type === 'SELL') {
+          sellQty += t.qty;
+          sellTotal += t.qty * t.price;
+        } else if (t.type === 'DIV' || t.type === 'JCP' || t.type === 'REND') {
           if (generateSells) {
-            const profit = (avgSellPrice - pos.avgPrice) * netSell;
             await db.sells.add({
               ticker,
               date,
-              qty: netSell,
-              avgCost: pos.avgPrice,
-              sellPrice: avgSellPrice,
-              profit,
-              type: 'SWING'
+              qty: t.qty,
+              avgCost: 0,
+              sellPrice: t.price,
+              profit: t.qty * t.price,
+              type: t.type
             });
-          }
-          pos.qty -= netSell;
-          if (pos.qty <= 0) {
-            pos.qty = 0;
-            pos.avgPrice = 0;
-          }
-        }
-
-        for (const t of dayTxs) {
-          if (t.type === 'SPLIT') {
-            if (t.qty > 0) {
-              pos.qty *= t.qty;
-              pos.avgPrice /= t.qty;
-            }
-          } else if (t.type === 'INPLIT') {
-            if (t.qty > 0 && pos.qty > 0) {
-              const newTotalQty = pos.qty / t.qty;
-              const wholeQty = Math.floor(newTotalQty);
-              const fractionalQty = newTotalQty - wholeQty;
-              const newAvgPrice = pos.avgPrice * t.qty;
-              
-              if (generateSells && fractionalQty > 0) {
-                await db.sells.add({
-                  ticker,
-                  date,
-                  qty: fractionalQty,
-                  avgCost: newAvgPrice,
-                  sellPrice: newAvgPrice,
-                  profit: 0,
-                  type: 'AJUSTE'
-                });
-              }
-              
-              pos.qty = wholeQty;
-              pos.avgPrice = newAvgPrice;
-            }
-          }
-        }
-        
-        if (generateSells) {
-          for (const t of dayTxs) {
-            if (t.id) {
-              await db.transactions.update(t.id, { is_pending: false });
-            }
           }
         }
       }
 
-      if (pos.qty > 0) {
-        await db.positions.put(pos);
-      } else {
-        await db.positions.delete(ticker);
+      const avgBuyPrice = buyQty > 0 ? buyTotal / buyQty : 0;
+      const avgSellPrice = sellQty > 0 ? sellTotal / sellQty : 0;
+
+      const dayTradeQty = Math.min(buyQty, sellQty);
+      if (generateSells && dayTradeQty > 0) {
+        const profit = (avgSellPrice - avgBuyPrice) * dayTradeQty;
+        await db.sells.add({
+          ticker,
+          date,
+          qty: dayTradeQty,
+          avgCost: avgBuyPrice,
+          sellPrice: avgSellPrice,
+          profit,
+          type: 'DAY'
+        });
+      }
+
+      const netBuy = buyQty - dayTradeQty;
+      const netSell = sellQty - dayTradeQty;
+
+      if (netBuy > 0) {
+        const prevTotal = pos.qty * pos.avgPrice;
+        const currentTotal = netBuy * avgBuyPrice;
+        pos.qty += netBuy;
+        pos.avgPrice = pos.qty > 0 ? (prevTotal + currentTotal) / pos.qty : 0;
+      }
+
+      if (netSell > 0) {
+        if (generateSells) {
+          const profit = (avgSellPrice - pos.avgPrice) * netSell;
+          await db.sells.add({
+            ticker,
+            date,
+            qty: netSell,
+            avgCost: pos.avgPrice,
+            sellPrice: avgSellPrice,
+            profit,
+            type: 'SWING'
+          });
+        }
+        pos.qty -= netSell;
+        if (pos.qty <= 0) {
+          pos.qty = 0;
+          pos.avgPrice = 0;
+        }
+      }
+
+      for (const t of dayTxs) {
+        if (t.type === 'SPLIT') {
+          if (t.qty > 0) {
+            pos.qty *= t.qty;
+            pos.avgPrice /= t.qty;
+          }
+        } else if (t.type === 'INPLIT') {
+          if (t.qty > 0 && pos.qty > 0) {
+            const newTotalQty = pos.qty / t.qty;
+            const wholeQty = Math.floor(newTotalQty);
+            const fractionalQty = newTotalQty - wholeQty;
+            const newAvgPrice = pos.avgPrice * t.qty;
+
+            if (generateSells && fractionalQty > 0) {
+              await db.sells.add({
+                ticker,
+                date,
+                qty: fractionalQty,
+                avgCost: newAvgPrice,
+                sellPrice: newAvgPrice,
+                profit: 0,
+                type: 'AJUSTE'
+              });
+            }
+
+            pos.qty = wholeQty;
+            pos.avgPrice = newAvgPrice;
+          }
+        }
+      }
+
+      if (generateSells) {
+        for (const t of dayTxs) {
+          if (t.id) {
+            await db.transactions.update(t.id, { is_pending: false });
+          }
+        }
       }
     }
 
-    await db.metadata.put({ key: 'last_updated_at', value: new Date().toISOString() });
+    if (pos.qty > 0) {
+      await db.positions.put(pos);
+    } else {
+      await db.positions.delete(ticker);
+    }
+  }
+
+  await db.metadata.put({ key: 'last_updated_at', value: new Date().toISOString() });
 }
 
 export async function countPendingTransactions(): Promise<number> {
@@ -277,20 +229,20 @@ export async function getSells(): Promise<Sell[]> {
 
 // Business logic
 export async function getTransactions(): Promise<Transaction[]> {
-  return await db.transactions.orderBy(['ticker','date']).reverse().toArray();
+  return await db.transactions.orderBy(['ticker', 'date']).reverse().toArray();
 }
 
 async function ensureCustodianExists(cnpj: string | undefined) {
   if (!cnpj) return;
   const normalizedCnpj = cnpj.replace(/\D/g, '');
   if (!normalizedCnpj) return;
-  
+
   const existing = await db.custodians.where('cnpj').equals(normalizedCnpj).first();
   if (!existing) {
     await db.custodians.add({
       cnpj: normalizedCnpj,
       name: 'Pendente: ' + normalizedCnpj,
-      status: 'PENDING'
+      is_pending: true
     });
   }
 }
@@ -298,7 +250,7 @@ async function ensureCustodianExists(cnpj: string | undefined) {
 export async function addTransaction(t: Transaction) {
   const ticker = t.ticker.toUpperCase();
   await db.transaction('rw', [db.transactions, db.metadata, db.positions, db.sells, db.assets, db.custodians], async () => {
-    
+
     // Check if asset exists, if not create it pending
     const existingAsset = await db.assets.where('ticker').equals(ticker).first();
     if (!existingAsset) {
@@ -324,9 +276,9 @@ export async function addTransaction(t: Transaction) {
       .where('ticker').equals(ticker)
       .and(tx => tx.date === t.date)
       .toArray();
-      
+
     for (const tx of sameDateTxs) {
-        if (tx.id) await db.transactions.update(tx.id, { is_pending: true });
+      if (tx.id) await db.transactions.update(tx.id, { is_pending: true });
     }
     await db.metadata.put({ key: 'last_updated_at', value: new Date().toISOString() });
     await _consolidateTrades(false);
@@ -350,18 +302,18 @@ export async function updateTransaction(id: number, t: Partial<Transaction>) {
 
     // Mark for re-consolidation: old ticker and new ticker
     const tickersToConsolidate = new Set([oldTicker, newTicker]);
-    
+
     for (const ticker of tickersToConsolidate) {
-       const txs = await db.transactions.where('ticker').equals(ticker).toArray();
-       for (const tx of txs) {
-         if (tx.id) await db.transactions.update(tx.id, { is_pending: true });
-       }
-       
-       // Also mark asset as pending if it exists
-       const asset = await db.assets.where('ticker').equals(ticker).first();
-       if (asset && asset.id) {
-         await db.assets.update(asset.id, { is_pending: true });
-       }
+      const txs = await db.transactions.where('ticker').equals(ticker).toArray();
+      for (const tx of txs) {
+        if (tx.id) await db.transactions.update(tx.id, { is_pending: true });
+      }
+
+      // Also mark asset as pending if it exists
+      const asset = await db.assets.where('ticker').equals(ticker).first();
+      if (asset && asset.id) {
+        await db.assets.update(asset.id, { is_pending: true });
+      }
     }
 
     await db.metadata.put({ key: 'last_updated_at', value: new Date().toISOString() });
@@ -375,19 +327,19 @@ export async function deleteTransaction(id: number) {
 
     const tx = await db.transactions.get(id);
     if (!tx) return;
-    
+
     const ticker = tx.ticker.toUpperCase();
     await db.transactions.delete(id);
-    
+
     // Mark transactions on the same date as pending to force re-consolidation
     // If no transactions left on that date, mark the most recent one as pending so the ticker is evaluated
     const otherTxs = await db.transactions.where('ticker').equals(ticker.toUpperCase()).toArray();
-    
+
     const sameDateTxs = await db.transactions
       .where('ticker').equals(ticker)
       .and(t => t.date === tx.date)
       .toArray();
-      
+
     if (sameDateTxs.length > 0) {
       for (const t of sameDateTxs) {
         if (t.id) await db.transactions.update(t.id, { is_pending: true });
@@ -399,7 +351,7 @@ export async function deleteTransaction(id: number) {
         await db.transactions.update(last.id, { is_pending: true });
       }
     }
-    
+
     // We also need to clear properties to avoid ghost data if no transactions left
     if (otherTxs.length === 0) {
       await db.positions.delete(ticker);

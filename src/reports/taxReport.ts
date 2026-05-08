@@ -1,24 +1,5 @@
-import { db, Transaction, Asset, Custodian } from '../db/database';
-
-export interface TaxReportData {
-  year: number;
-  items: TaxReportItem[];
-}
-
-export interface TaxReportItem {
-  ticker: string;
-  description: string;
-  custodianName: string;
-  custodianCnpj: string;
-  prevYearQty: number;
-  currentYearQty: number;
-  currentYearAvgPrice: number;
-  earnings: {
-    div: number;
-    jcp: number;
-    rend: number;
-  };
-}
+import { db } from '../db/database';
+import { TaxReportData, TaxReportItem } from './taxReport.types';
 
 export async function getTaxReportData(year: number): Promise<TaxReportData> {
   const transactions = await db.transactions.toArray();

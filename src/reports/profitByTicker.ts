@@ -1,5 +1,5 @@
 import { db } from '../db/database';
-import { ReportDefinition } from './index';
+import { ReportDefinition } from './reports.types';
 
 export const profitByTickerReport: ReportDefinition = {
   id: 'profit-by-ticker',

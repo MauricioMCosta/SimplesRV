@@ -1,5 +1,6 @@
-import { db, Transaction } from '../db/database';
-import { ReportDefinition } from './index';
+import { db } from '../db/database';
+import { Transaction } from '../db/database.types';
+import { ReportDefinition } from './reports.types';
 
 export const annualizedPositionsReport: ReportDefinition = {
   id: 'annualized-positions',

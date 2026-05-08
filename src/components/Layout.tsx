@@ -2,7 +2,7 @@ import { LucideIcon, LayoutDashboard, ListOrdered, Settings, BadgeDollarSign, Da
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
-import { ReactNode, useState, useEffect } from 'react';
+import React, { ReactNode, useState, useEffect } from 'react';
 import { AppLogo } from './AppLogo';
 
 interface NavItem {
@@ -12,10 +12,10 @@ interface NavItem {
 }
 
 const topNavItems: NavItem[] = [
+  { label: 'Transações', href: '/transactions', icon: ListOrdered },
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
   { label: 'Ativos', href: '/assets', icon: Database },
   { label: 'Custodiantes', href: '/custodians', icon: ShieldCheck },
-  { label: 'Transações', href: '/transactions', icon: ListOrdered },
   { label: 'Relatórios', href: '/reports', icon: FileBarChart },
 ];
 
@@ -58,39 +58,46 @@ export function Layout({ children }: { children: ReactNode }) {
         <AppLogo isCollapsed={isCollapsed} />
         
         <nav className="flex-1 py-4">
-          {topNavItems.map((item) => {
+          {topNavItems.map((item, index) => {
             const isActive = location.pathname === item.href;
             return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "px-6 py-3 flex items-center gap-3 text-sm transition-all relative overflow-hidden group",
-                  isCollapsed ? "px-0 justify-center" : "px-6",
-                  isActive 
-                    ? "text-white bg-white/5 border-l-4 border-brand-accent" 
-                    : "text-slate-400 hover:text-white hover:bg-white/5"
-                )}
-              >
-                <item.icon size={18} className="shrink-0" />
-                <AnimatePresence>
-                  {!isCollapsed && (
-                    <motion.span
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -10 }}
-                      className="whitespace-nowrap"
-                    >
-                      {item.label}
-                    </motion.span>
+              <React.Fragment key={item.href}>
+                <Link
+                  to={item.href}
+                  className={cn(
+                    "px-6 py-3 flex items-center gap-3 text-sm transition-all relative overflow-hidden group",
+                    isCollapsed ? "px-0 justify-center" : "px-6",
+                    isActive 
+                      ? "text-white bg-white/5 border-l-4 border-brand-accent" 
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
                   )}
-                </AnimatePresence>
-                {isCollapsed && (
-                  <div className="absolute left-full ml-2 px-2 py-1 bg-brand-sidebar border border-white/10 rounded text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
-                    {item.label}
-                  </div>
+                >
+                  <item.icon size={18} className="shrink-0" />
+                  <AnimatePresence>
+                    {!isCollapsed && (
+                      <motion.span
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        className="whitespace-nowrap"
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                  {isCollapsed && (
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-brand-sidebar border border-white/10 rounded text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                      {item.label}
+                    </div>
+                  )}
+                </Link>
+                {index === 0 && (
+                  <div className={cn(
+                    "my-3 border-t border-white/5",
+                    isCollapsed ? "mx-4" : "mx-6"
+                  )} />
                 )}
-              </Link>
+              </React.Fragment>
             );
           })}
         </nav>

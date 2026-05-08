@@ -1,21 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-type DialogType = 'alert' | 'confirm';
-
-interface DialogState {
-  isOpen: boolean;
-  type: DialogType;
-  message: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-interface DialogContextType {
-  showAlertDialog: (message: string) => void;
-  showConfirmDialog: (message: string, onConfirm: () => void) => void;
-  dialogState: DialogState;
-  closeDialog: () => void;
-}
+import { DialogType, DialogState, DialogContextType } from './DialogContext.types';
 
 const DialogContext = createContext<DialogContextType | undefined>(undefined);
 

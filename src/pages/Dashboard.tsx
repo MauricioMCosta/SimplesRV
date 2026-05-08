@@ -3,6 +3,7 @@ import { useDatabase } from '@/src/context/DatabaseContext';
 import { DashboardCard } from '@/src/components/DashboardCard';
 import { DashboardTable } from '@/src/components/DashboardTable';
 import { DataTableWrapper } from '../components/DataTableWrapper';
+import { cn } from '@/src/lib/utils';
 
 export default function Dashboard() {
   const { positions, transactions, assets, custodians, db } = useDatabase();
@@ -30,7 +31,7 @@ export default function Dashboard() {
 
   const pendingTransactions = useMemo(() => transactions.filter(t => t.is_pending).length, [transactions]);
   const pendingAssets = useMemo(() => assets.filter(a => a.is_pending).length, [assets]);
-  const pendingCustodians = useMemo(() => custodians.filter(c => c.status === 'PENDING').length, [custodians]);
+  const pendingCustodians = useMemo(() => custodians.filter(c => c.is_pending).length, [custodians]);
 
   const tableData = useMemo(() => positions.map(b => ({
     id: b.ticker,
@@ -47,6 +48,13 @@ export default function Dashboard() {
     avgPrice: { label: "Preço Médio", type: "number", align: "right", formatOptions: { minimumFractionDigits: 2, maximumFractionDigits: 2 } } as any,
     total: { label: "Total", type: "number", align: "right", formatOptions: { minimumFractionDigits: 2, maximumFractionDigits: 2 } } as any
   }), []);
+
+  const handleColumnRender = (row: any, key: string, val: any) => {
+    if (key === 'ticker') {
+      return { cellStyle: "font-bold text-brand-ink font-mono" };
+    }
+    return null;
+  };
 
   if (isLoading) {
     return <div className="flex justify-center py-20 text-gray-400">Carregando dados...</div>;
@@ -92,6 +100,7 @@ export default function Dashboard() {
       <DashboardTable 
         heading="Posição das ações"
         columns={tableColumns}
+        onColumnRender={handleColumnRender}
       />
       </DataTableWrapper>
     </div>

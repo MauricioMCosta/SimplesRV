@@ -1,21 +1,11 @@
-export interface ReportResult {
-  title: string;
-  markdown: string;
-  generatedAt: Date;
-}
-
-export interface ReportDefinition {
-  id: string;
-  name: string;
-  description: string;
-  execute: () => Promise<string>;
-}
-
+import { ReportDefinition } from './reports.types';
 import { equitySummaryReport } from './equitySummary';
 import { profitByTickerReport } from './profitByTicker';
 import { annualizedPositionsReport } from './annualizedPositions';
 import { realizedProfitsReport } from './realizedProfits';
 import { getTaxReportData, formatTaxReportMarkdown } from './taxReport';
+
+export type { ReportResult, ReportDefinition } from './reports.types';
 
 export const reports: ReportDefinition[] = [
   {

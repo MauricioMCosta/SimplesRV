@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useDatabase } from '@/src/context/DatabaseContext';
+import { AssetFormData } from './Assets.types';
 import { useDialog } from '@/src/context/DialogContext';
 import { Plus } from 'lucide-react';
 import { DashboardTable } from '@/src/components/DashboardTable';
 import { Modal } from '@/src/components/Modal';
 import { DataTableWrapper } from '@/src/components/DataTableWrapper';
+import { cn } from '@/src/lib/utils';
 
 export default function Assets() {
   const { assets, custodians, db } = useDatabase();
@@ -13,7 +15,7 @@ export default function Assets() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AssetFormData>({
     ticker: '',
     description: '',
     type: 'AÇÕES',
@@ -96,6 +98,25 @@ export default function Assets() {
     status: "Status"
   }), []);
 
+  const handleColumnRender = (row: any, key: string, val: any) => {
+    if (key === 'ticker') {
+      return { cellStyle: "font-bold text-brand-ink font-mono" };
+    }
+    if (key === 'status') {
+      return {
+        cellValue: (
+          <span className={cn(
+            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+            val === 'OK' ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+          )}>
+            {val}
+          </span>
+        )
+      };
+    }
+    return null;
+  };
+
   const tableHeading = (
     <div className="flex justify-between items-center w-full">
       <div>
@@ -120,55 +141,57 @@ export default function Assets() {
         title={editingId ? "Editar Ativo" : "Novo Ativo"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Ticker</label>
-            <input
-              type="text"
-              placeholder="Ex: AAPL"
-              className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none uppercase focus:border-brand-accent transition-colors"
-              value={formData.ticker}
-              onChange={e => setFormData({ ...formData, ticker: e.target.value })}
-            />
-          </div>
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Ticker</label>
+              <input
+                type="text"
+                placeholder="Ex: AAPL"
+                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none uppercase focus:border-brand-accent transition-colors"
+                value={formData.ticker}
+                onChange={e => setFormData({ ...formData, ticker: e.target.value })}
+              />
+            </div>
 
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Descrição</label>
-            <input
-              type="text"
-              placeholder="Ex: Apple Inc."
-              className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm outline-none focus:border-brand-accent transition-colors"
-              value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
-            />
-          </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Descrição</label>
+              <input
+                type="text"
+                placeholder="Ex: Apple Inc."
+                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm outline-none focus:border-brand-accent transition-colors"
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
 
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Tipo</label>
-            <select
-              className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm outline-none focus:border-brand-accent transition-colors"
-              value={formData.type}
-              onChange={e => setFormData({ ...formData, type: e.target.value })}
-            >
-              <option value="AÇÕES">Ações</option>
-              <option value="FII">FII</option>
-              <option value="FIA">FIA</option>
-              <option value="ETF">ETF</option>
-              <option value="BDR">BDR</option>
-              <option value="RENDA FIXA">Renda Fixa</option>
-              <option value="CRYPTO">Criptomoeda</option>
-              <option value="OUTROS">Outros</option>
-            </select>
-          </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Tipo</label>
+              <select
+                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm outline-none focus:border-brand-accent transition-colors"
+                value={formData.type}
+                onChange={e => setFormData({ ...formData, type: e.target.value })}
+              >
+                <option value="AÇÕES">Ações</option>
+                <option value="FII">FII</option>
+                <option value="FIA">FIA</option>
+                <option value="ETF">ETF</option>
+                <option value="BDR">BDR</option>
+                <option value="RENDA FIXA">Renda Fixa</option>
+                <option value="CRYPTO">Criptomoeda</option>
+                <option value="OUTROS">Outros</option>
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">CNPJ do Custodiante</label>
-            <input
-              type="text"
-              placeholder="Ex: 00.000.000/0000-00"
-              className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
-              value={formData.custodianCnpj}
-              onChange={e => setFormData({ ...formData, custodianCnpj: e.target.value })}
-            />
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">CNPJ do Custodiante</label>
+              <input
+                type="text"
+                placeholder="Ex: 00.000.000/0000-00"
+                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
+                value={formData.custodianCnpj}
+                onChange={e => setFormData({ ...formData, custodianCnpj: e.target.value })}
+              />
+            </div>
           </div>
 
           <div className="pt-4 border-t border-brand-line flex justify-end gap-3">
@@ -195,6 +218,7 @@ export default function Assets() {
           columns={tableColumns}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onColumnRender={handleColumnRender}
         />
       </DataTableWrapper>
     </div>

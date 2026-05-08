@@ -1,27 +1,5 @@
-import React, { createContext, useContext, useReducer, useMemo, ReactNode, useEffect } from "react";
-
-type SortOrder = 'asc' | 'desc';
-
-interface DataTableState {
-  data: any[];
-  page: number;
-  limit: number;
-  search: string;
-  filters: Record<string, string>;
-  sortBy: string | null;
-  sortOrder: SortOrder;
-}
-
-type DataTableAction = 
-  | { type: 'SET_DATA', payload: any[]}
-  | { type: 'SYNC_DATA', payload: any[]}
-  | { type: 'SET_PAGE', payload: number }
-  | { type: 'SET_LIMIT', payload: number }
-  | { type: 'SET_SEARCH', payload: string }
-  | { type: 'SET_FILTER', payload: { key: string; value: string } }
-  | { type: 'SET_SORT', payload: { field: string; order?: SortOrder } }
-  | { type: 'NEXT_PAGE'}
-  | { type: 'PREV_PAGE'};
+import React, { createContext, useContext, useReducer, useMemo, useEffect } from "react";
+import { SortOrder, DataTableState, DataTableAction, DataTableContextType, DataTableProviderProps } from "./DataTableContext.types";
 
 function dataTableReducer(state: DataTableState, action: DataTableAction) : DataTableState {
   switch(action.type) {
@@ -63,26 +41,7 @@ function dataTableReducer(state: DataTableState, action: DataTableAction) : Data
   }
 }
 
-interface DataTableContextType extends DataTableState {
-  displayData: any[];
-  totalRecords: number;
-  totalPages: number;
-  setSearch: (term: string) => void;
-  setFilter: (key: string, value: string) => void;
-  setSort: (field: string, order?: SortOrder) => void;
-  setPage: (page: number) => void;
-  setLimit: (limit: number) => void;
-  next: () => void;
-  prev: () => void;
-}
-
 export const DataTableContext = createContext<DataTableContextType | undefined>(undefined);
-
-interface DataTableProviderProps {
-  children: ReactNode;
-  initialData?: any[];
-  initialLimit?: number;
-}
 
 const getNestedValue = (obj: any, path: string) => {
   return path.split('.').reduce((acc, part) => acc && acc[part], obj);

@@ -3,4 +3,5 @@ export interface AssetFormData {
   description: string;
   type: string;
   custodianCnpj: string;
+  payingSourceCnpj: string;
 }

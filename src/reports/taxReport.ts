@@ -24,6 +24,7 @@ export async function getTaxReportData(year: number): Promise<TaxReportData> {
     const tickerTxs = transactions.filter(t => t.ticker.toUpperCase() === ticker);
     const asset = assets.find(a => a.ticker.toUpperCase() === ticker);
     const custodian = custodians.find(c => c.cnpj === asset?.custodianCnpj);
+    const payingSource = custodians.find(c => c.cnpj === asset?.payingSourceCnpj);
 
     let currentQty = 0;
     let currentAvgPrice = 0;
@@ -81,6 +82,8 @@ export async function getTaxReportData(year: number): Promise<TaxReportData> {
         description: asset?.description || 'Sem descrição',
         custodianName: custodian?.name || 'Custodiante não cadastrado',
         custodianCnpj: custodian?.cnpj || asset?.custodianCnpj || '-',
+        payingSourceName: payingSource?.name || 'Fonte pagadora não cadastrada',
+        payingSourceCnpj: payingSource?.cnpj || asset?.payingSourceCnpj || '-',
         prevYearQty,
         currentYearQty: currentQty,
         currentYearAvgPrice: currentAvgPrice,
@@ -124,7 +127,8 @@ export function formatTaxReportMarkdown(data: TaxReportData): string {
 
   for (const item of data.items) {
     markdown += `### **${item.ticker}** - ${item.description}\n`;
-    markdown += `**Custodiante:** ${item.custodianName} - **CNPJ:** ${item.custodianCnpj}\n\n`;
+    markdown += `**Custodiante:** ${item.custodianName} - **CNPJ:** ${item.custodianCnpj}\n`;
+    markdown += `**Fonte Pagadora:** ${item.payingSourceName} - **CNPJ:** ${item.payingSourceCnpj}\n\n`;
     
     markdown += `#### 📋 Posição em Custódia\n`;
     markdown += `- **31/12/${data.year - 1}:** ${item.prevYearQty.toLocaleString('pt-BR')} unidades\n`;
@@ -147,6 +151,10 @@ export function formatTaxReportMarkdown(data: TaxReportData): string {
     markdown += `---\n\n`;
   }
 
-  markdown += `\n*Relatório gerado em ${new Date().toLocaleString('pt-BR')}*`;
+  markdown += `\n***\n\n`;
+  markdown += `**Aviso Legal:**\n`;
+  markdown += `- Os valores de rendimentos apresentados são valores brutos, não descontados os impostos se for cabível.\n`;
+  markdown += `- Este relatório é meramente auxiliar e não substitui em hipótese alguma os informes de rendimentos oficiais emitidos pelos custodiantes ou suas fontes pagadoras.\n\n`;
+  markdown += `*Relatório gerado em ${new Date().toLocaleString('pt-BR')}*`;
   return markdown;
 }

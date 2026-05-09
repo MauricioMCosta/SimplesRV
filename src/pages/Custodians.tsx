@@ -14,7 +14,7 @@ export default function Custodians() {
   const { showAlertDialog, showConfirmDialog } = useDialog();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  
+
   const [formData, setFormData] = useState<CustodianFormData>({
     cnpj: '',
     name: ''
@@ -52,7 +52,7 @@ export default function Custodians() {
     const normalizedCnpj = formData.cnpj.replace(/\D/g, '');
 
     if (editingId) {
-      await updateCustodian(editingId, { 
+      await updateCustodian(editingId, {
         ...formData,
         cnpj: normalizedCnpj,
         is_pending: false
@@ -72,7 +72,7 @@ export default function Custodians() {
   const handleDelete = async (row: any) => {
     const { id } = row;
     if (!id) return;
-    showConfirmDialog('Deseja excluir este custodiante?', async () => {
+    showConfirmDialog('Deseja excluir este registro?', async () => {
       await deleteCustodian(id);
     });
   };
@@ -83,7 +83,7 @@ export default function Custodians() {
 
   const tableData = useMemo(() => custodians.map(c => ({
     id: c.id,
-    data: { 
+    data: {
       ...c,
       statusDisplay: c.is_pending ? 'PENDENTE' : 'OK'
     },
@@ -105,7 +105,6 @@ export default function Custodians() {
             "flex items-center gap-1.5 text-[10px] font-bold uppercase py-0.5 px-1.5 rounded-full w-fit",
             isPending ? "bg-amber-50 text-amber-600 border border-amber-100" : "bg-green-50 text-green-600 border border-green-100"
           )}>
-            {isPending ? <ShieldAlert size={10} /> : <ShieldCheck size={10} />}
             {val}
           </div>
         )
@@ -120,7 +119,7 @@ export default function Custodians() {
   const tableHeading = (
     <div className="flex justify-between items-center w-full">
       <div>
-        <h3 className="text-sm font-bold text-brand-ink uppercase tracking-wider">Custodiantes</h3>
+        <h3 className="text-sm font-bold text-brand-ink uppercase tracking-wider">Custodiantes e Fontes pagadoras</h3>
         <p className="text-[10px] text-slate-400 font-mono">REGISTROS: {custodians.length}</p>
       </div>
       <button
@@ -128,17 +127,17 @@ export default function Custodians() {
         className="btn btn-primary"
       >
         <Plus size={14} />
-        Novo Custodiante
+        Novo registro
       </button>
     </div>
   );
 
   return (
     <div className="space-y-6">
-      <Modal 
-        isOpen={showForm} 
-        onClose={() => { setShowForm(false); resetForm(); }} 
-        title={editingId ? "Editar Custodiante" : "Novo Custodiante"}
+      <Modal
+        isOpen={showForm}
+        onClose={() => { setShowForm(false); resetForm(); }}
+        title={editingId ? "Editar" : "Novo"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
@@ -177,14 +176,14 @@ export default function Custodians() {
               type="submit"
               className="btn btn-primary"
             >
-              SALVAR CUSTODIANTE
+              SALVAR
             </button>
           </div>
         </form>
       </Modal>
 
       <DataTableWrapper initialData={tableData} initialLimit={12}>
-        <DashboardTable 
+        <DashboardTable
           heading={tableHeading}
           columns={tableColumns}
           onEdit={handleEdit}

@@ -12,8 +12,8 @@ interface NavItem {
 }
 
 const topNavItems: NavItem[] = [
-  { label: 'Transações', href: '/transactions', icon: ListOrdered },
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { label: 'Transações', href: '/transactions', icon: ListOrdered },
   { label: 'Ativos', href: '/assets', icon: Database },
   { label: 'Custodiantes', href: '/custodians', icon: ShieldCheck },
   { label: 'Relatórios', href: '/reports', icon: FileBarChart },

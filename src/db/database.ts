@@ -11,12 +11,12 @@ export class AppDatabase extends Dexie {
 
   constructor() {
     super('FinDB');
-    this.version(8).stores({
+    this.version(9).stores({
       transactions: '++id, ticker, date, type, [ticker+date]',
       metadata: 'key',
       positions: 'ticker',
       sells: '++id, ticker, date, type',
-      assets: '++id, &ticker, custodianCnpj, is_pending',
+      assets: '++id, &ticker, custodianCnpj, payingSourceCnpj, is_pending',
       custodians: '++id, &cnpj, is_pending'
     });
   }
@@ -432,6 +432,9 @@ export async function addAsset(a: Omit<Asset, 'id'>) {
     if (a.custodianCnpj) {
       await ensureCustodianExists(a.custodianCnpj);
     }
+    if (a.payingSourceCnpj) {
+      await ensureCustodianExists(a.payingSourceCnpj);
+    }
     await db.assets.add({ ...a, ticker: a.ticker.toUpperCase() });
   });
 }
@@ -441,6 +444,9 @@ export async function updateAsset(id: number, data: Partial<Asset>) {
     if (data.ticker) data.ticker = data.ticker.toUpperCase();
     if (data.custodianCnpj) {
       await ensureCustodianExists(data.custodianCnpj);
+    }
+    if (data.payingSourceCnpj) {
+      await ensureCustodianExists(data.payingSourceCnpj);
     }
     await db.assets.update(id, data);
   });

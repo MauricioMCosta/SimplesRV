@@ -7,6 +7,7 @@ import { DashboardTable } from '@/src/components/DashboardTable';
 import { Modal } from '@/src/components/Modal';
 import { DataTableWrapper } from '@/src/components/DataTableWrapper';
 import { cn } from '@/src/lib/utils';
+import { SRVAutoComplete } from '@/src/components/SRVAutoComplete';
 
 export default function Assets() {
   const { assets, custodians, db } = useDatabase();
@@ -19,11 +20,12 @@ export default function Assets() {
     ticker: '',
     description: '',
     type: 'AÇÕES',
-    custodianCnpj: ''
+    custodianCnpj: '',
+    payingSourceCnpj: ''
   });
 
   const resetForm = () => {
-    setFormData({ ticker: '', description: '', type: 'AÇÕES', custodianCnpj: '' });
+    setFormData({ ticker: '', description: '', type: 'AÇÕES', custodianCnpj: '', payingSourceCnpj: '' });
     setEditingId(null);
   };
 
@@ -33,7 +35,8 @@ export default function Assets() {
         ticker: asset.ticker || '',
         description: asset.description || '',
         type: asset.type || 'AÇÕES',
-        custodianCnpj: asset.custodianCnpj || ''
+        custodianCnpj: asset.custodianCnpj || '',
+        payingSourceCnpj: asset.payingSourceCnpj || ''
       });
       setEditingId(asset.id);
     } else {
@@ -79,11 +82,13 @@ export default function Assets() {
 
   const tableData = useMemo(() => assets.map(asset => {
     const custodian = custodians.find(c => c.cnpj === asset.custodianCnpj);
+    const payingSource = custodians.find(c => c.cnpj === asset.payingSourceCnpj);
     return {
       id: asset.id,
       data: { 
         ...asset,
         custodianName: custodian ? custodian.name : (asset.custodianCnpj || '-'),
+        payingSourceName: payingSource ? payingSource.name : (asset.payingSourceCnpj || '-'),
         status: asset.is_pending ? 'PENDENTE' : 'OK'
       },
       flags: { canEdit: true, canDelete: true }
@@ -95,6 +100,7 @@ export default function Assets() {
     description: "Descrição",
     type: "Tipo",
     custodianName: "Custodiante",
+    payingSourceName: "Fonte Pagadora",
     status: "Status"
   }), []);
 
@@ -132,6 +138,23 @@ export default function Assets() {
       </button>
     </div>
   );
+
+  const custodianOptions = useMemo(() => custodians.map(c => `${c.cnpj} | ${c.name}`), [custodians]);
+
+  const getDisplayCnpj = (cnpj: string) => {
+    const custodian = custodians.find(c => c.cnpj === cnpj);
+    return custodian ? `${custodian.cnpj} | ${custodian.name}` : cnpj;
+  };
+
+  const handleCnpjChange = (field: 'custodianCnpj' | 'payingSourceCnpj', val: string) => {
+    // If it's a selection from the list, extract CNPJ
+    if (val.includes(' | ')) {
+      const cnpj = val.split(' | ')[0];
+      setFormData(prev => ({ ...prev, [field]: cnpj }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: val }));
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -182,16 +205,21 @@ export default function Assets() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">CNPJ do Custodiante</label>
-              <input
-                type="text"
-                placeholder="Ex: 00.000.000/0000-00"
-                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
-                value={formData.custodianCnpj}
-                onChange={e => setFormData({ ...formData, custodianCnpj: e.target.value })}
-              />
-            </div>
+            <SRVAutoComplete
+              label="Custodiante"
+              placeholder="CNPJ ou Nome..."
+              options={custodianOptions}
+              value={getDisplayCnpj(formData.custodianCnpj)}
+              onChange={val => handleCnpjChange('custodianCnpj', val)}
+            />
+
+            <SRVAutoComplete
+              label="Fonte Pagadora"
+              placeholder="CNPJ ou Nome..."
+              options={custodianOptions}
+              value={getDisplayCnpj(formData.payingSourceCnpj)}
+              onChange={val => handleCnpjChange('payingSourceCnpj', val)}
+            />
           </div>
 
           <div className="pt-4 border-t border-brand-line flex justify-end gap-3">
@@ -224,3 +252,4 @@ export default function Assets() {
     </div>
   );
 }
+

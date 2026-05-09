@@ -8,6 +8,8 @@ export interface TaxReportItem {
   description: string;
   custodianName: string;
   custodianCnpj: string;
+  payingSourceName: string;
+  payingSourceCnpj: string;
   prevYearQty: number;
   currentYearQty: number;
   currentYearAvgPrice: number;

@@ -4,49 +4,67 @@ import Markdown from 'react-markdown';
 const markdownContent = `
 # Manual de Uso - $implesRV
 
+## Sumário
+1. [Visão Geral (Dashboard)](#1-visão-geral-dashboard)
+2. [Ativos (Assets)](#2-ativos-assets)
+3. [Custodiantes e Fontes Pagadoras](#3-custodiantes-e-fontes-pagadoras)
+4. [Transações](#4-transações)
+5. [Relatórios (Imposto de Renda)](#5-relatórios-imposto-de-renda)
+6. [Lucros Realizados](#6-lucros-realizados)
+7. [Configurações e Backup](#7-configurações-e-backup)
+
 Bem-vindo ao **$implesRV**, sua ferramenta local para consolidação de ativos e apuração de lucros em Renda Variável.
 
 Este manual guiará você pelas principais funcionalidades da aplicação.
 
 ## 1. Visão Geral (Dashboard)
-Ao abrir a aplicação, o **Dashboard** oferece um resumo gerencial da sua base de dados atual e painéis mostrando rapidamente o total de lucros, métricas de volume e uso. 
-- *Acesso rápido:* Resumo dos seus resultados fechados de ganhos e perdas.
+Ao abrir a aplicação, o **Dashboard** oferece um resumo gerencial da sua base de dados atual.
+- **Cards de Métricas:** Exibem o total de lucros, volume de transações e ativos.
+- **Pendências:** O sistema alerta sobre registros pendentes que precisam de atenção (Ativos, Transações e Custodiantes).
+- **Posição das Ações:** Uma tabela detalhada com sua custódia atual, custo médio e saldo (total investido).
 
 ## 2. Ativos (Assets)
 A aba **Ativos** é o seu cadastro de controle mestre das empresas, fundos (FII, FIA), ETFs, BDRs e afins que você opera.
-- Os ativos são adicionados automaticamente como "PENDENTE" ao cadastrar uma transação de um ticker não conhecido.
-- Você pode editar o tipo do ativo ou criar novos ativos previamente na tabela utilizando o botão **Novo Ativo**.
+- **Pendentes:** Novos ativos são adicionados automaticamente como "PENDENTE" ao cadastrar uma transação de um ticker não conhecido.
+- **Manutenção:** Você deve editar os ativos pendentes para preencher a Descrição, Tipo, Custodiante e Fonte Pagadora.
+- **Vínculos:** Ao editar um ativo, utilize as caixas de **Auto-complete** para pesquisar e selecionar o Custodiante e a Fonte Pagadora previamente cadastrados.
 
-## 3. Transações
-O coração do $implesRV é a aba **Transações**. Nela você registra suas compras (COMPRA) e vendas (VENDA).
-- Clique em **Nova Transação** e forneça a Data, Ticker (código do ativo), Tipo (COMPRA ou VENDA), Quantidade e Preço Unitário.
-- A consistência temporal é importante: o sistema recalcula de forma cronológica com base nessas entradas para determinar custos médios.
-- O campo "Filtro" nas colunas facilita explorar o histórico de um ativo específico em meio a grandes volumes.
+## 3. Custodiantes e Fontes Pagadoras
+Esta página centraliza o cadastro das instituições financeiras e empresas responsáveis pelo pagamento de proventos.
+- **CNPJ e Nome:** Informe os dados oficiais para que os relatórios de Imposto de Renda sejam gerados corretamente.
+- **Registros Pendentes:** O sistema cria registros automáticos quando um CNPJ desconhecido é importado de notas ou digitado em outras telas. Sempre revise esses registros para garantir que o nome da instituição esteja correto.
 
-### 3.1 Eventos Corporativos (Desdobramento e Agrupamento)
-O sistema suporta o registro de ajustes de custódia diretamente na aba de Transações:
-- **Desdobramento (SPLIT):** Utilizado quando a empresa aumenta o número de ações (ex: 1 para 10). Informe o **Fator** de multiplicação (ex: 10). Sua quantidade será multiplicada e seu preço médio dividido por este fator.
-- **Agrupamento (INPLIT):** Utilizado para consolidar ações (ex: 10 para 1). Informe o **Fator** de agrupamento (ex: 10). Sua quantidade será dividida e seu preço médio multiplicado.
-- **Tratamento de Frações (Sobras):** No agrupamento, se a divisão não for exata, o sistema realizará o seguinte ajuste automático:
-    - A parte inteira permanece na sua custódia.
-    - A porção fracionária (ex: 0,5 cota) é movida para a aba **Lucros Realizados** com o tipo **AJUSTE**.
-    - Inicialmente, o preço de venda é igual ao custo médio (lucro zero). Quando você receber o valor do leilão de frações da corretora, você pode identificar essa linha em Lucros Realizados e entender o impacto fiscal daquela liquidação forçada.
+## 4. Transações
+O coração do $implesRV é a aba **Transações**. Nela você registra todas as suas movimentações.
+- **Tipos de Operação:** Suporta COMPRA (Mercado à vista), VENDA, DAY TRADE e SWING TRADE.
+- **Organização:** Utilize os filtros de busca para localizar transações por ticker ou data.
+- **Consistência:** A ordem cronológica das transações é fundamental para o cálculo correto do Preço Médio.
 
+### 4.1 Eventos Corporativos (Desdobramento e Agrupamento)
+O sistema suporta o registro de ajustes de custódia:
+- **Desdobramento (SPLIT):** Informe o fator multiplicador. A quantidade de ações aumenta e o preço médio diminui proporcionalmente.
+- **Agrupamento (INPLIT):** Informe o fator de agrupamento. A quantidade diminui e o preço médio aumenta.
+- **Tratamento de Frações:** No agrupamento, frações resultantes são liquidadas automaticamente como ajustes de lucros realizados.
 
-## 4. Lucros Realizados
-Nesta sessão, você visualiza de forma automática a consolidação dos resultados de suas vendas.
-- Toda vez que uma VENDA é incluída na aba Transações, o sistema busca as COMPRAS anteriores do mesmo Ticker e calcula o lucro ou prejuízo do evento.
-- **Preço Médio:** O sistema calcula dinamicamente seu custo de aquisição deduzindo saldos.
+## 5. Relatórios (Imposto de Renda)
+A seção de **Relatórios** permite gerar documentos auxiliares para sua declaração anual.
+- **Relatório de Transmutações (IR):** Gera um documento em Markdown detalhando a posição em 31/12 de cada ativo, lucros/prejuízos mensais e dados dos custodiantes.
+- **Importante:** Os valores de rendimentos são brutos. O relatório não substitui os informes oficiais das fontes pagadoras.
 
-## 5. Configurações e Backup
-É vital lembrar que os dados são **locais** (residem dentro do seu navegador atual).
-- Utilize a aba **Configurações** para realizar **Exportações (Backup)**. Um arquivo \`.json\` é baixado no seu computador.
-- Caso acesse a ferramenta em um novo browser, ou limpe o cache, os dados sumirão. Para voltar, utilize o botão **Importar**.
-- É possível limpar a base completamente, uma ferramenta muito útil caso precise usar o sistema de forma portátil em lugares diferentes após realizar o seu backup.
+## 6. Lucros Realizados
+Visualização automática dos resultados de suas vendas.
+- O sistema confronta cada VENDA com as COMPRAS anteriores (sistema Preço Médio/FIFO).
+- Permite entender a performance por ativo e monitorar o limite de isenção mensal se aplicável.
+
+## 7. Configurações e Backup
+Os dados são armazenados **exclusivamente no seu navegador**.
+- **Backup:** Exporte regularmente seus dados em formato \`.json\` via tela de Configurações.
+- **Privacidade:** Nenhum dado é enviado para servidores externos. Tudo fica sob seu controle total.
+- **Importação:** Permite restaurar backups ou migrar seus dados para outro dispositivo.
 
 ---
 
-> **DICA DE OURO:** Mantenha disciplina em registrar seus aportes com o ticker correto e a data precisa, garantindo que a calculadora de custo e alocação de venda obedeça a sequência lógica (FIFO / Preço Médio Ponderado).
+> **DICA DE OURO:** Mantenha disciplina em registrar seus aportes com o ticker correto e revise sempre os registros pendentes de Ativos e Custodiantes para garantir relatórios precisos.
 `;
 
 export default function Manual() {

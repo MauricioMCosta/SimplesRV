@@ -132,6 +132,13 @@ export default function Custodians() {
     </div>
   );
 
+  const handleFormKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent form submission on Enter as requested by user
+    if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+      e.preventDefault();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Modal
@@ -139,7 +146,7 @@ export default function Custodians() {
         onClose={() => { setShowForm(false); resetForm(); }}
         title={editingId ? "Editar" : "Novo"}
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">CNPJ</label>
@@ -148,7 +155,7 @@ export default function Custodians() {
                 placeholder="Ex: 00.000.000/0000-00"
                 className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
                 value={formData.cnpj}
-                onChange={e => setFormData({ ...formData, cnpj: e.target.value })}
+                onChange={e => setFormData({ ...formData, cnpj: e.target.value.replace(/\D/g, '') })}
               />
             </div>
 

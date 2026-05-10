@@ -220,6 +220,13 @@ export default function Transactions() {
 
   const tickerOptions = Array.from(new Set(assets.map(a => a.ticker.toUpperCase()))).sort();
 
+  const handleFormKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent form submission on Enter as requested by user
+    if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+      e.preventDefault();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Modal 
@@ -227,7 +234,7 @@ export default function Transactions() {
         onClose={() => setShowForm(false)} 
         title={formData.id ? "Editar Evento" : "Registrar Novo Evento"}
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <SRVAutoComplete

@@ -149,10 +149,19 @@ export default function Assets() {
   const handleCnpjChange = (field: 'custodianCnpj' | 'payingSourceCnpj', val: string) => {
     // If it's a selection from the list, extract CNPJ
     if (val.includes(' | ')) {
-      const cnpj = val.split(' | ')[0];
+      const cnpj = val.split(' | ')[0].replace(/\D/g, '');
       setFormData(prev => ({ ...prev, [field]: cnpj }));
     } else {
-      setFormData(prev => ({ ...prev, [field]: val }));
+      // For typed values, also strip everything except digits
+      const onlyNumbers = val.replace(/\D/g, '');
+      setFormData(prev => ({ ...prev, [field]: onlyNumbers }));
+    }
+  };
+
+  const handleFormKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent form submission on Enter as requested by user
+    if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+      e.preventDefault();
     }
   };
 
@@ -163,7 +172,7 @@ export default function Assets() {
         onClose={() => { setShowForm(false); resetForm(); }} 
         title={editingId ? "Editar Ativo" : "Novo Ativo"}
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Ticker</label>

@@ -23,6 +23,7 @@ export function SRVAutoComplete({
 }: SRVAutoCompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(value);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Sync internal search term with external value
@@ -34,6 +35,11 @@ export function SRVAutoComplete({
   const filteredOptions = options.filter(option =>
     option.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Reset highlighted index when options change
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [searchTerm, isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -60,6 +66,33 @@ export function SRVAutoComplete({
     if (!isOpen) setIsOpen(true);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setIsOpen(true);
+      setHighlightedIndex(prev => 
+        prev < filteredOptions.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter') {
+      // Prevent form submission
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (isOpen) {
+        if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
+          handleSelect(filteredOptions[highlightedIndex]);
+        } else {
+          setIsOpen(false);
+        }
+      }
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+    }
+  };
+
   return (
     <div className={cn("relative w-full space-y-1.5", className)} ref={containerRef}>
       {label && (
@@ -76,6 +109,7 @@ export function SRVAutoComplete({
           value={searchTerm}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           required={required}
           className="w-full pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent/20 focus:border-brand-accent transition-all uppercase placeholder:normal-case font-medium"
@@ -111,10 +145,12 @@ export function SRVAutoComplete({
                 <button
                   key={`${option}-${index}`}
                   type="button"
+                  onMouseEnter={() => setHighlightedIndex(index)}
                   onClick={() => handleSelect(option)}
                   className={cn(
                     "w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition-colors uppercase font-medium",
-                    value === option ? "text-brand-accent bg-brand-accent/5" : "text-slate-700"
+                    value === option ? "text-brand-accent bg-brand-accent/5" : "text-slate-700",
+                    highlightedIndex === index && "bg-slate-100"
                   )}
                 >
                   {option}

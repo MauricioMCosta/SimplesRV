@@ -9,7 +9,7 @@ import { DataTableWrapper } from '@/src/components/DataTableWrapper';
 import { cn } from '@/src/lib/utils';
 
 export default function Custodians() {
-  const { custodians, db } = useDatabase();
+  const { custodians, assets, db } = useDatabase();
   const { addCustodian, updateCustodian, deleteCustodian } = db;
   const { showAlertDialog, showConfirmDialog } = useDialog();
   const [showForm, setShowForm] = useState(false);

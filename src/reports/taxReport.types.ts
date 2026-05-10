@@ -10,6 +10,8 @@ export interface TaxReportItem {
   custodianCnpj: string;
   payingSourceName: string;
   payingSourceCnpj: string;
+  fundName: string;
+  fundCnpj: string;
   prevYearQty: number;
   currentYearQty: number;
   currentYearAvgPrice: number;

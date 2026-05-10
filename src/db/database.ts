@@ -435,6 +435,9 @@ export async function addAsset(a: Omit<Asset, 'id'>) {
     if (a.payingSourceCnpj) {
       await ensureCustodianExists(a.payingSourceCnpj);
     }
+    if (a.fundCnpj) {
+      await ensureCustodianExists(a.fundCnpj);
+    }
     await db.assets.add({ ...a, ticker: a.ticker.toUpperCase() });
   });
 }
@@ -447,6 +450,9 @@ export async function updateAsset(id: number, data: Partial<Asset>) {
     }
     if (data.payingSourceCnpj) {
       await ensureCustodianExists(data.payingSourceCnpj);
+    }
+    if (data.fundCnpj) {
+      await ensureCustodianExists(data.fundCnpj);
     }
     await db.assets.update(id, data);
   });

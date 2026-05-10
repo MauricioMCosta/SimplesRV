@@ -3,7 +3,7 @@ import { useDatabase } from '@/src/context/DatabaseContext';
 import { DashboardCard } from '@/src/components/DashboardCard';
 import { DashboardTable } from '@/src/components/DashboardTable';
 import { DataTableWrapper } from '../components/DataTableWrapper';
-import { cn } from '@/src/lib/utils';
+
 
 export default function Dashboard() {
   const { positions, transactions, assets, custodians, db } = useDatabase();
@@ -65,7 +65,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <DashboardCard
           title="Consolidação"
-          content={pendingTransactions > 0 ? `🟡 ${pendingTransactions} pendentes` : "🟢 Atualizado"}
+          content={pendingTransactions > 0 ? `🟡 ${pendingTransactions} pendentes` : "🟢 OK"}
           footer={
              (pendingTransactions > 0) ? (
               <button

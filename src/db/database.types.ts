@@ -38,6 +38,7 @@ export interface Asset {
   type: string;
   custodianCnpj?: string;
   payingSourceCnpj?: string;
+  fundCnpj?: string;
   is_pending?: boolean;
 }
 

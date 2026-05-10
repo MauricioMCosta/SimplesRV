@@ -21,11 +21,19 @@ export default function Assets() {
     description: '',
     type: 'AÇÕES',
     custodianCnpj: '',
-    payingSourceCnpj: ''
+    payingSourceCnpj: '',
+    fundCnpj: ''
   });
 
   const resetForm = () => {
-    setFormData({ ticker: '', description: '', type: 'AÇÕES', custodianCnpj: '', payingSourceCnpj: '' });
+    setFormData({ 
+      ticker: '', 
+      description: '', 
+      type: 'AÇÕES', 
+      custodianCnpj: '', 
+      payingSourceCnpj: '',
+      fundCnpj: ''
+    });
     setEditingId(null);
   };
 
@@ -36,7 +44,8 @@ export default function Assets() {
         description: asset.description || '',
         type: asset.type || 'AÇÕES',
         custodianCnpj: asset.custodianCnpj || '',
-        payingSourceCnpj: asset.payingSourceCnpj || ''
+        payingSourceCnpj: asset.payingSourceCnpj || '',
+        fundCnpj: asset.fundCnpj || ''
       });
       setEditingId(asset.id);
     } else {
@@ -83,12 +92,14 @@ export default function Assets() {
   const tableData = useMemo(() => assets.map(asset => {
     const custodian = custodians.find(c => c.cnpj === asset.custodianCnpj);
     const payingSource = custodians.find(c => c.cnpj === asset.payingSourceCnpj);
+    const fund = custodians.find(c => c.cnpj === asset.fundCnpj);
     return {
       id: asset.id,
       data: { 
         ...asset,
         custodianName: custodian ? custodian.name : (asset.custodianCnpj || '-'),
         payingSourceName: payingSource ? payingSource.name : (asset.payingSourceCnpj || '-'),
+        fundName: fund ? fund.name : (asset.fundCnpj || '-'),
         status: asset.is_pending ? 'PENDENTE' : 'OK'
       },
       flags: { canEdit: true, canDelete: true }
@@ -101,6 +112,7 @@ export default function Assets() {
     type: "Tipo",
     custodianName: "Custodiante",
     payingSourceName: "Fonte Pagadora",
+    fundName: "CNPJ Fundo",
     status: "Status"
   }), []);
 
@@ -146,7 +158,7 @@ export default function Assets() {
     return custodian ? `${custodian.cnpj} | ${custodian.name}` : cnpj;
   };
 
-  const handleCnpjChange = (field: 'custodianCnpj' | 'payingSourceCnpj', val: string) => {
+  const handleCnpjChange = (field: 'custodianCnpj' | 'payingSourceCnpj' | 'fundCnpj', val: string) => {
     // If it's a selection from the list, extract CNPJ
     if (val.includes(' | ')) {
       const cnpj = val.split(' | ')[0].replace(/\D/g, '');
@@ -174,15 +186,35 @@ export default function Assets() {
       >
         <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Ticker</label>
-              <input
-                type="text"
-                placeholder="Ex: AAPL"
-                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none uppercase focus:border-brand-accent transition-colors"
-                value={formData.ticker}
-                onChange={e => setFormData({ ...formData, ticker: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Ticker</label>
+                <input
+                  type="text"
+                  placeholder="Ex: AAPL"
+                  className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none uppercase focus:border-brand-accent transition-colors"
+                  value={formData.ticker}
+                  onChange={e => setFormData({ ...formData, ticker: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Tipo</label>
+                <select
+                  className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm outline-none focus:border-brand-accent transition-colors font-bold"
+                  value={formData.type}
+                  onChange={e => setFormData({ ...formData, type: e.target.value })}
+                >
+                  <option value="AÇÕES">Ações</option>
+                  <option value="FII">FII</option>
+                  <option value="FIA">FIA</option>
+                  <option value="ETF">ETF</option>
+                  <option value="BDR">BDR</option>
+                  <option value="RENDA FIXA">Renda Fixa</option>
+                  <option value="CRYPTO">Criptomoeda</option>
+                  <option value="OUTROS">Outros</option>
+                </select>
+              </div>
             </div>
 
             <div>
@@ -194,24 +226,6 @@ export default function Assets() {
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
               />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Tipo</label>
-              <select
-                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm outline-none focus:border-brand-accent transition-colors"
-                value={formData.type}
-                onChange={e => setFormData({ ...formData, type: e.target.value })}
-              >
-                <option value="AÇÕES">Ações</option>
-                <option value="FII">FII</option>
-                <option value="FIA">FIA</option>
-                <option value="ETF">ETF</option>
-                <option value="BDR">BDR</option>
-                <option value="RENDA FIXA">Renda Fixa</option>
-                <option value="CRYPTO">Criptomoeda</option>
-                <option value="OUTROS">Outros</option>
-              </select>
             </div>
 
             <SRVAutoComplete
@@ -228,6 +242,14 @@ export default function Assets() {
               options={custodianOptions}
               value={getDisplayCnpj(formData.payingSourceCnpj)}
               onChange={val => handleCnpjChange('payingSourceCnpj', val)}
+            />
+
+            <SRVAutoComplete
+              label="CNPJ do Fundo"
+              placeholder="CNPJ ou Nome..."
+              options={custodianOptions}
+              value={getDisplayCnpj(formData.fundCnpj)}
+              onChange={val => handleCnpjChange('fundCnpj', val)}
             />
           </div>
 

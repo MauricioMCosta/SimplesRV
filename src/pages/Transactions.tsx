@@ -140,10 +140,10 @@ export default function Transactions() {
       filterable: true,
       filterOptions: assets.map(a => ({ label: a.ticker, value: a.ticker }))
     },
-    date: "Date",
-    type: "Type",
-    qty: { label: "Qty", type: "number", align: "right" },
-    price: { label: "Price", type: "number", align: "right", formatOptions: { minimumFractionDigits: 2, maximumFractionDigits: 2 } },
+    date: "Data",
+    type: "Tipo",
+    qty: { label: "Qtde", type: "number", align: "right" },
+    price: { label: "Preço", type: "number", align: "right", formatOptions: { minimumFractionDigits: 2, maximumFractionDigits: 2 } },
     total: { label: "Total", type: "number", align: "right", formatOptions: { minimumFractionDigits: 2, maximumFractionDigits: 2 } },
     status: "Status"
   }), [assets]);

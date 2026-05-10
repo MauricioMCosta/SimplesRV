@@ -232,7 +232,7 @@ export async function getTransactions(): Promise<Transaction[]> {
   return await db.transactions.orderBy(['ticker', 'date']).reverse().toArray();
 }
 
-async function ensureCustodianExists(cnpj: string | undefined) {
+async function ensureCustodianExists(cnpj: string | undefined, name?: string) {
   if (!cnpj) return;
   const normalizedCnpj = cnpj.replace(/\D/g, '');
   if (!normalizedCnpj) return;
@@ -241,8 +241,8 @@ async function ensureCustodianExists(cnpj: string | undefined) {
   if (!existing) {
     await db.custodians.add({
       cnpj: normalizedCnpj,
-      name: 'Pendente: ' + normalizedCnpj,
-      is_pending: true
+      name: name || ('Pendente: ' + normalizedCnpj),
+      is_pending: !name
     });
   }
 }
@@ -436,7 +436,7 @@ export async function addAsset(a: Omit<Asset, 'id'>) {
       await ensureCustodianExists(a.payingSourceCnpj);
     }
     if (a.fundCnpj) {
-      await ensureCustodianExists(a.fundCnpj);
+      await ensureCustodianExists(a.fundCnpj, a.description);
     }
     await db.assets.add({ ...a, ticker: a.ticker.toUpperCase() });
   });
@@ -452,7 +452,10 @@ export async function updateAsset(id: number, data: Partial<Asset>) {
       await ensureCustodianExists(data.payingSourceCnpj);
     }
     if (data.fundCnpj) {
-      await ensureCustodianExists(data.fundCnpj);
+      // We might need the full asset to get the description if not provided in Partial
+      const existingAsset = await db.assets.get(id);
+      const name = data.description || existingAsset?.description;
+      await ensureCustodianExists(data.fundCnpj, name);
     }
     await db.assets.update(id, data);
   });

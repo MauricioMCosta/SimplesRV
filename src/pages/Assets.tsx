@@ -8,6 +8,7 @@ import { Modal } from '@/src/components/Modal';
 import { DataTableWrapper } from '@/src/components/DataTableWrapper';
 import { cn } from '@/src/lib/utils';
 import { SRVAutoComplete } from '@/src/components/SRVAutoComplete';
+import * as CNPJ from '@/src/lib/cnpj';
 
 export default function Assets() {
   const { assets, custodians, db } = useDatabase();
@@ -155,7 +156,7 @@ export default function Assets() {
 
   const getDisplayCnpj = (cnpj: string) => {
     const custodian = custodians.find(c => c.cnpj === cnpj);
-    return custodian ? `${custodian.cnpj} | ${custodian.name}` : cnpj;
+    return custodian ? `${CNPJ.toText(custodian.cnpj)} | ${custodian.name}` : CNPJ.toText(cnpj);
   };
 
   const handleCnpjChange = (field: 'custodianCnpj' | 'payingSourceCnpj' | 'fundCnpj', val: string) => {
@@ -168,6 +169,11 @@ export default function Assets() {
       const onlyNumbers = val.replace(/\D/g, '');
       setFormData(prev => ({ ...prev, [field]: onlyNumbers }));
     }
+  };
+
+  const isCnpjInvalid = (val: string) => {
+    if (!val) return false;
+    return !CNPJ.isValidCNPJ(val);
   };
 
   const handleFormKeyDown = (e: React.KeyboardEvent) => {
@@ -228,29 +234,47 @@ export default function Assets() {
               />
             </div>
 
-            <SRVAutoComplete
-              label="Custodiante"
-              placeholder="CNPJ ou Nome..."
-              options={custodianOptions}
-              value={getDisplayCnpj(formData.custodianCnpj)}
-              onChange={val => handleCnpjChange('custodianCnpj', val)}
-            />
+            <div>
+              <SRVAutoComplete
+                label="Custodiante"
+                placeholder="CNPJ ou Nome..."
+                options={custodianOptions}
+                value={getDisplayCnpj(formData.custodianCnpj)}
+                onChange={val => handleCnpjChange('custodianCnpj', val)}
+                className={cn(isCnpjInvalid(formData.custodianCnpj) && "ring-1 ring-red-500")}
+              />
+              {isCnpjInvalid(formData.custodianCnpj) && (
+                <p className="text-[9px] text-red-500 font-bold mt-0.5 uppercase tracking-tighter italic">CNPJ Inválido</p>
+              )}
+            </div>
 
-            <SRVAutoComplete
-              label="Fonte Pagadora"
-              placeholder="CNPJ ou Nome..."
-              options={custodianOptions}
-              value={getDisplayCnpj(formData.payingSourceCnpj)}
-              onChange={val => handleCnpjChange('payingSourceCnpj', val)}
-            />
+            <div>
+              <SRVAutoComplete
+                label="Fonte Pagadora"
+                placeholder="CNPJ ou Nome..."
+                options={custodianOptions}
+                value={getDisplayCnpj(formData.payingSourceCnpj)}
+                onChange={val => handleCnpjChange('payingSourceCnpj', val)}
+                className={cn(isCnpjInvalid(formData.payingSourceCnpj) && "ring-1 ring-red-500")}
+              />
+              {isCnpjInvalid(formData.payingSourceCnpj) && (
+                <p className="text-[9px] text-red-500 font-bold mt-0.5 uppercase tracking-tighter italic">CNPJ Inválido</p>
+              )}
+            </div>
 
-            <SRVAutoComplete
-              label="CNPJ do Fundo"
-              placeholder="CNPJ ou Nome..."
-              options={custodianOptions}
-              value={getDisplayCnpj(formData.fundCnpj)}
-              onChange={val => handleCnpjChange('fundCnpj', val)}
-            />
+            <div>
+              <SRVAutoComplete
+                label="CNPJ do Fundo"
+                placeholder="CNPJ ou Nome..."
+                options={custodianOptions}
+                value={getDisplayCnpj(formData.fundCnpj)}
+                onChange={val => handleCnpjChange('fundCnpj', val)}
+                className={cn(isCnpjInvalid(formData.fundCnpj) && "ring-1 ring-red-500")}
+              />
+              {isCnpjInvalid(formData.fundCnpj) && (
+                <p className="text-[9px] text-red-500 font-bold mt-0.5 uppercase tracking-tighter italic">CNPJ Inválido</p>
+              )}
+            </div>
           </div>
 
           <div className="pt-4 border-t border-brand-line flex justify-end gap-3">

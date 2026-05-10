@@ -7,6 +7,7 @@ import { DashboardTable } from '@/src/components/DashboardTable';
 import { Modal } from '@/src/components/Modal';
 import { DataTableWrapper } from '@/src/components/DataTableWrapper';
 import { cn } from '@/src/lib/utils';
+import * as CNPJ from '@/src/lib/cnpj';
 
 export default function Custodians() {
   const { custodians, assets, db } = useDatabase();
@@ -85,13 +86,14 @@ export default function Custodians() {
     id: c.id,
     data: {
       ...c,
+      cnpjDisplay: CNPJ.toText(c.cnpj),
       statusDisplay: c.is_pending ? 'PENDENTE' : 'OK'
     },
     flags: { canEdit: true, canDelete: true }
   })), [custodians]);
 
   const tableColumns = useMemo(() => ({
-    cnpj: "CNPJ",
+    cnpjDisplay: "CNPJ",
     name: "Nome",
     statusDisplay: "Status"
   }), []);
@@ -110,7 +112,7 @@ export default function Custodians() {
         )
       };
     }
-    if (key === 'cnpj') {
+    if (key === 'cnpjDisplay') {
       return { cellStyle: "font-mono text-slate-500" };
     }
     return null;
@@ -153,10 +155,16 @@ export default function Custodians() {
               <input
                 type="text"
                 placeholder="Ex: 00.000.000/0000-00"
-                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
-                value={formData.cnpj}
-                onChange={e => setFormData({ ...formData, cnpj: e.target.value.replace(/\D/g, '') })}
+                className={cn(
+                  "w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors",
+                  formData.cnpj && !CNPJ.isValidCNPJ(formData.cnpj) && "border-red-500 ring-1 ring-red-500"
+                )}
+                value={CNPJ.toText(formData.cnpj)}
+                onChange={e => setFormData({ ...formData, cnpj: CNPJ.fromText(e.target.value) })}
               />
+              {formData.cnpj && !CNPJ.isValidCNPJ(formData.cnpj) && (
+                <p className="text-[9px] text-red-500 font-bold mt-1 uppercase tracking-tighter italic">CNPJ Inválido</p>
+              )}
             </div>
 
             <div>

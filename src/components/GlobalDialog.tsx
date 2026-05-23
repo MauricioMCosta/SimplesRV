@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDialog } from '../context/DialogContext';
+import { useDialog } from '@context/DialogContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertCircle, CheckCircle, X } from 'lucide-react';
 

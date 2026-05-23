@@ -1,4 +1,4 @@
-import { LucideIcon, LayoutDashboard, ListOrdered, Settings, BadgeDollarSign, Database, BookOpen, Info, ChevronLeft, ChevronRight, FileBarChart, ShieldCheck } from 'lucide-react';
+import { LucideIcon, LayoutDashboard, ListOrdered, Settings, BadgeDollarSign, Database, BookOpen, Info, ChevronLeft, ChevronRight, FileBarChart, ShieldCheck, Calculator } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
@@ -17,6 +17,7 @@ const topNavItems: NavItem[] = [
   { label: 'Ativos', href: '/assets', icon: Database },
   { label: 'Custodiantes', href: '/custodians', icon: ShieldCheck },
   { label: 'Relatórios', href: '/reports', icon: FileBarChart },
+  { label: 'Calculadoras', href: '/calculators', icon: Calculator },
 ];
 
 const bottomNavItems: NavItem[] = [

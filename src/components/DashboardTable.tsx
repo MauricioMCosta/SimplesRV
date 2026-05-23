@@ -1,8 +1,8 @@
-import { useState, useContext } from 'react';
+import { useContext } from 'react';
 import { cn } from '@/src/lib/utils';
 import { Trash2, Edit2, ChevronLeft, ChevronRight, Search, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { DataTableContext } from '../context/DataTableContext';
-import { ColumnSettings, DashboardTableProps } from './DashboardTable.types';
+import { DashboardTableProps } from './DashboardTable.types';
 
 export function DashboardTable({ heading, data = [], columns, onEdit, onDelete, onColumnRender }: DashboardTableProps) {
   const context = useContext(DataTableContext);

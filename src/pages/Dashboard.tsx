@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useDatabase } from '@/src/context/DatabaseContext';
-import { DashboardCard } from '@/src/components/DashboardCard';
+import { SRVCard } from '@/src/components/SRVCard';
 import { DashboardTable } from '@/src/components/DashboardTable';
 import { DataTableWrapper } from '../components/DataTableWrapper';
 
@@ -63,7 +63,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <DashboardCard
+        <SRVCard
           title="Consolidação"
           content={pendingTransactions > 0 ? `🟡 ${pendingTransactions} pendentes` : "🟢 OK"}
           footer={
@@ -78,19 +78,19 @@ export default function Dashboard() {
           }
         />
 
-        <DashboardCard
+        <SRVCard
           title="Ativos Pendentes"
           content={pendingAssets > 0 ? `🟡 ${pendingAssets} por completar` : "🟢 OK"}
           footer={pendingAssets > 0 ? "Verifique a aba Ativos" : "Todos dados ok"}
         />
 
-        <DashboardCard
+        <SRVCard
           title="Custodias Pendentes"
           content={pendingCustodians > 0 ? `🟡 ${pendingCustodians} pendentes` : "🟢 OK"}
           footer={pendingCustodians > 0 ? "Verifique a aba Custodiantes" : "Tudo conferido"}
         />
 
-        <DashboardCard
+        <SRVCard
           title="Resumo Carteira"
           content={`${positions.length} Tickers`}
           footer={`Total: R$ ${positions.reduce((acc, p) => acc + (p.qty * p.avgPrice), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}

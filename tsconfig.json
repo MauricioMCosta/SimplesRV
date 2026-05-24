@@ -21,7 +21,8 @@
       "@context/*": ["src/context/*"],
       "@components/*": ["src/components/*"],
       "@pages/*": ["src/pages/*"],
-      "@lib/*": ["src/lib/*"]
+      "@lib/*": ["src/lib/*"],
+      "@utils/*": ["src/utils/*"]
     },
     "baseUrl": ".",
     "allowImportingTsExtensions": true,

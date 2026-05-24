@@ -3,6 +3,10 @@ import { useDatabase } from '@context/DatabaseContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calculator, ArrowRightLeft, TrendingUp, ArrowUpRight, ArrowDownRight, Layers } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
+import { SRVInput } from '@components/SRVInput';
+import { SRVFieldset } from '@components/SRVFieldset';
+import { SRVCard } from '@components/SRVCard';
+import { calculateFutureAveragePrice, calculateStockTransfer } from '@utils/calculatorMath';
 
 export default function Calculators() {
   const { positions, assets, transactions } = useDatabase();
@@ -87,68 +91,23 @@ export default function Calculators() {
 
   // --- MATHEMATICAL EVALUATIONS: CALC 1 ---
   const avgCalcResult = useMemo(() => {
-    const origQty = parseFloat(avgCurrentQty) || 0;
-    const origPrice = parseFloat(avgCurrentPrice) || 0;
-    const newQty = parseFloat(avgPurchaseQty) || 0;
-    const newPrice = parseFloat(avgPurchasePrice) || 0;
-
-    const currentTotal = origQty * origPrice;
-    const purchaseTotal = newQty * newPrice;
-
-    const totalQty = origQty + newQty;
-    const totalCost = currentTotal + purchaseTotal;
-
-    const newAvgPrice = totalQty > 0 ? totalCost / totalQty : 0;
-    const priceDiff = newAvgPrice - origPrice;
-    const priceDiffPercent = origPrice > 0 ? (priceDiff / origPrice) * 100 : 0;
-
-    return {
-      currentTotal,
-      purchaseTotal,
-      totalQty,
-      totalCost,
-      newAvgPrice,
-      priceDiff,
-      priceDiffPercent,
-    };
+    return calculateFutureAveragePrice(
+      parseFloat(avgCurrentQty) || 0,
+      parseFloat(avgCurrentPrice) || 0,
+      parseFloat(avgPurchaseQty) || 0,
+      parseFloat(avgPurchasePrice) || 0
+    );
   }, [avgCurrentQty, avgCurrentPrice, avgPurchaseQty, avgPurchasePrice]);
 
   // --- MATHEMATICAL EVALUATIONS: CALC 2 ---
   const transferCalcResult = useMemo(() => {
-    const qA = parseFloat(transOriginQty) || 0;
-    const pA = parseFloat(transOriginPrice) || 0;
-    const divA = parseFloat(transOriginPayout) || 0;
-
-    const pB = parseFloat(transDestPrice) || 0;
-    const divB = parseFloat(transDestPayout) || 0;
-
-    const incomeA = qA * divA;
-    const salesCapital = qA * pA;
-
-    const qB = pB > 0 ? Math.ceil(salesCapital / pB) : 0;
-    const leftoverCapital = salesCapital - (qB * pB);
-    const incomeB = qB * divB;
-
-    const yieldA = pA > 0 ? (divA / pA) * 100 : 0;
-    const yieldB = pB > 0 ? (divB / pB) * 100 : 0;
-
-    const incomeDiff = incomeB - incomeA;
-    const incomeDiffPercent = incomeA > 0 ? (incomeDiff / incomeA) * 100 : 0;
-
-    const isWorth = incomeDiff > 0;
-
-    return {
-      incomeA,
-      salesCapital,
-      qB,
-      leftoverCapital,
-      incomeB,
-      yieldA,
-      yieldB,
-      incomeDiff,
-      incomeDiffPercent,
-      isWorth,
-    };
+    return calculateStockTransfer(
+      parseFloat(transOriginQty) || 0,
+      parseFloat(transOriginPrice) || 0,
+      parseFloat(transOriginPayout) || 0,
+      parseFloat(transDestPrice) || 0,
+      parseFloat(transDestPayout) || 0
+    );
   }, [transOriginQty, transOriginPrice, transOriginPayout, transDestPrice, transDestPayout]);
 
   return (
@@ -212,12 +171,7 @@ export default function Calculators() {
           >
             {/* Input Section (7 Columns) */}
             <div className="lg:col-span-5 bg-white border border-brand-line rounded-lg p-6 space-y-6">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-tight mb-4 flex items-center gap-2">
-                  <span className="w-1.5 h-3 bg-brand-accent rounded-full inline-block" />
-                  Ativo & Posição Atual
-                </h2>
-                
+              <SRVFieldset title="Ativo & Posição Atual">
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">
@@ -241,90 +195,60 @@ export default function Calculators() {
                   </div>
 
                   {avgSelectedTicker === 'custom' && (
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">
-                        Ticker / Símbolo
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Ex: PETR4"
-                        className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono uppercase outline-none focus:border-brand-accent transition-colors"
-                        value={avgTickerInput}
-                        onChange={(e) => setAvgTickerInput(e.target.value.toUpperCase())}
-                      />
-                    </div>
+                    <SRVInput
+                      label="Ticker / Símbolo"
+                      placeholder="Ex: PETR4"
+                      className="uppercase"
+                      value={avgTickerInput}
+                      onChange={(e) => setAvgTickerInput(e.target.value.toUpperCase())}
+                    />
                   )}
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">
-                        Quantidade Atual
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        placeholder="0"
-                        className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
-                        value={avgCurrentQty}
-                        onChange={(e) => setAvgCurrentQty(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">
-                        Preço Médio Atual (R$)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        placeholder="0,00"
-                        className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
-                        value={avgCurrentPrice}
-                        onChange={(e) => setAvgCurrentPrice(e.target.value)}
-                      />
-                    </div>
+                    <SRVInput
+                      label="Quantidade Atual"
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="0"
+                      value={avgCurrentQty}
+                      onChange={(e) => setAvgCurrentQty(e.target.value)}
+                    />
+                    <SRVInput
+                      label="Preço Médio Atual (R$)"
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="0,00"
+                      value={avgCurrentPrice}
+                      onChange={(e) => setAvgCurrentPrice(e.target.value)}
+                    />
                   </div>
                 </div>
-              </div>
+              </SRVFieldset>
 
-              <div className="pt-4 border-t border-brand-line">
-                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-tight mb-4 flex items-center gap-2">
-                  <span className="w-1.5 h-3 bg-brand-accent rounded-full inline-block" />
-                  Simulação de Compra
-                </h2>
-
+              <SRVFieldset title="Simulação de Compra" hasBorderTop>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">
-                      Quantidade à Comprar
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="Ex: 50"
-                      className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
-                      value={avgPurchaseQty}
-                      onChange={(e) => setAvgPurchaseQty(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">
-                      Preço Unitário de Compra (R$)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="Ex: 25,10"
-                      className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors"
-                      value={avgPurchasePrice}
-                      onChange={(e) => setAvgPurchasePrice(e.target.value)}
-                    />
-                  </div>
+                  <SRVInput
+                    label="Quantidade à Comprar"
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="Ex: 50"
+                    value={avgPurchaseQty}
+                    onChange={(e) => setAvgPurchaseQty(e.target.value)}
+                  />
+                  <SRVInput
+                    label="Preço Unitário de Compra (R$)"
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="Ex: 25,10"
+                    value={avgPurchasePrice}
+                    onChange={(e) => setAvgPurchasePrice(e.target.value)}
+                  />
                 </div>
-              </div>
+              </SRVFieldset>
             </div>
 
             {/* Metrics Section (7 Columns) */}
@@ -379,52 +303,52 @@ export default function Calculators() {
 
               {/* Grid of details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* original */}
-                <div className="bg-white border border-brand-line p-5 rounded-lg flex flex-col justify-between shadow-sm">
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Posição Original</span>
-                    <div className="mt-3 flex flex-col gap-2">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-slate-500">Quantidade:</span>
-                        <span className="font-mono font-bold text-slate-800">{parseFloat(avgCurrentQty).toLocaleString('pt-BR')} un</span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-slate-500">Média:</span>
-                        <span className="font-mono font-bold text-slate-800">R$ {parseFloat(avgCurrentPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex justify-between text-xs pt-2 border-t border-brand-line">
-                        <span className="font-bold text-slate-600">Total Alocado:</span>
-                        <span className="font-mono font-bold text-slate-900">R$ {avgCalcResult.currentTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
+                <SRVCard
+                  title="Posição Original"
+                  titleClassName="text-[10px] text-slate-400 font-bold uppercase tracking-wider block"
+                >
+                  <div className="mt-1 flex flex-col gap-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Quantidade:</span>
+                      <span className="font-mono font-bold text-slate-800">{parseFloat(avgCurrentQty).toLocaleString('pt-BR')} un</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Média:</span>
+                      <span className="font-mono font-bold text-slate-800">R$ {parseFloat(avgCurrentPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between text-xs pt-2 border-t border-brand-line">
+                      <span className="font-bold text-slate-600">Total Alocado:</span>
+                      <span className="font-mono font-bold text-slate-900">R$ {avgCalcResult.currentTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   </div>
-                </div>
+                </SRVCard>
 
-                {/* Simulated Purchase / Aporte */}
-                <div className="bg-white border border-brand-line p-5 rounded-lg flex flex-col justify-between shadow-sm">
-                  <div>
-                    <span className="text-[10px] text-brand-accent font-bold uppercase tracking-wider block">Valor do Novo Aporte</span>
-                    <div className="mt-3 flex flex-col gap-2">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-slate-500">Qtde à Comprar:</span>
-                        <span className="font-mono font-bold text-slate-800">{parseFloat(avgPurchaseQty).toLocaleString('pt-BR')} un</span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-slate-500">Preço Compra:</span>
-                        <span className="font-mono font-bold text-slate-800">R$ {parseFloat(avgPurchasePrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex justify-between text-xs pt-2 border-t border-brand-line">
-                        <span className="font-bold text-brand-sidebar">Aporte Adicional:</span>
-                        <span className="font-mono font-black text-brand-accent">R$ {avgCalcResult.purchaseTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
+                <SRVCard
+                  title="Valor do Novo Aporte"
+                  titleClassName="text-[10px] text-brand-accent font-bold uppercase tracking-wider block"
+                >
+                  <div className="mt-1 flex flex-col gap-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Qtde à Comprar:</span>
+                      <span className="font-mono font-bold text-slate-800">{parseFloat(avgPurchaseQty).toLocaleString('pt-BR')} un</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Preço Compra:</span>
+                      <span className="font-mono font-bold text-slate-800">R$ {parseFloat(avgPurchasePrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between text-xs pt-2 border-t border-brand-line">
+                      <span className="font-bold text-brand-sidebar">Aporte Adicional:</span>
+                      <span className="font-mono font-black text-brand-accent">R$ {avgCalcResult.purchaseTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   </div>
-                </div>
+                </SRVCard>
               </div>
 
               {/* End simulation output card */}
-              <div className="bg-white border border-brand-line rounded-lg p-6 shadow-sm">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-3">Futura Posição Consolidada</span>
+              <SRVCard
+                title="Futura Posição Consolidada"
+                titleClassName="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-1"
+              >
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
                   <div>
                     <p className="text-xs text-slate-500">Quantidade Total</p>
@@ -445,7 +369,7 @@ export default function Calculators() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </SRVCard>
             </div>
           </motion.div>
         ) : (
@@ -460,132 +384,123 @@ export default function Calculators() {
             {/* Form Origin/Dest (5 Columns) */}
             <div className="lg:col-span-5 flex flex-col gap-6">
               {/* Origin configuration */}
-              <div className="bg-white border border-brand-line rounded-lg p-6 space-y-4">
-                <h2 className="text-xs font-bold text-red-500 uppercase tracking-tight mb-2 flex items-center gap-1.5">
-                  <span className="w-1.5 h-3 bg-red-400 rounded-full inline-block" />
-                  Ativo de Origem (Venda)
-                </h2>
+              <div className="bg-white border border-brand-line rounded-lg p-6">
+                <SRVFieldset
+                  title="Ativo de Origem (Venda)"
+                  titleClassName="text-xs font-bold text-red-500 uppercase tracking-tight mb-2 flex items-center gap-1.5"
+                  bulletClassName="bg-red-400"
+                >
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">
+                      Selecionar Origem (De)
+                    </label>
+                    <select
+                      className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-bold outline-none focus:border-red-400 transition-colors"
+                      value={transSelectedOrigin}
+                      onChange={(e) => setTransSelectedOrigin(e.target.value)}
+                    >
+                      <option value="">-- Escolher posição ativa --</option>
+                      {positions.map((pos) => {
+                        const details = assets.find(a => a.ticker === pos.ticker);
+                        return (
+                          <option key={pos.ticker} value={pos.ticker}>
+                            {pos.ticker} {details ? `- ${details.description}` : ''} ({pos.qty} un)
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">
-                    Selecionar Origem (De)
-                  </label>
-                  <select
-                    className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-bold outline-none focus:border-red-400 transition-colors"
-                    value={transSelectedOrigin}
-                    onChange={(e) => setTransSelectedOrigin(e.target.value)}
-                  >
-                    <option value="">-- Escolher posição ativa --</option>
-                    {positions.map((pos) => {
-                      const details = assets.find(a => a.ticker === pos.ticker);
-                      return (
-                        <option key={pos.ticker} value={pos.ticker}>
-                          {pos.ticker} {details ? `- ${details.description}` : ''} ({pos.qty} un)
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="col-span-1">
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1 leading-tighter uppercase tracking-tight">
-                      Qtde
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent"
-                      value={transOriginQty}
-                      onChange={(e) => setTransOriginQty(e.target.value)}
-                    />
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-1">
+                      <SRVInput
+                        label="Qtde"
+                        classNameLabel="text-[11px] leading-tighter uppercase tracking-tight"
+                        type="number"
+                        min="0"
+                        value={transOriginQty}
+                        onChange={(e) => setTransOriginQty(e.target.value)}
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <SRVInput
+                        label="Preço Venda (R$)"
+                        classNameLabel="text-[11px] leading-tighter uppercase tracking-tight"
+                        type="number"
+                        min="0"
+                        step="any"
+                        className="animate-pulse"
+                        value={transOriginPrice}
+                        onChange={(e) => setTransOriginPrice(e.target.value)}
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <SRVInput
+                        label="Últ. Dividendo (R$)"
+                        classNameLabel="text-[11px] leading-tighter uppercase tracking-tight"
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={transOriginPayout}
+                        onChange={(e) => setTransOriginPayout(e.target.value)}
+                        title="Provento pago por cota/ação mais recente detectado."
+                      />
+                    </div>
                   </div>
-                  <div className="col-span-1">
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1 leading-tighter uppercase tracking-tight">
-                      Preço Venda (R$)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent animate-pulse"
-                      value={transOriginPrice}
-                      onChange={(e) => setTransOriginPrice(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1 leading-tighter uppercase tracking-tight">
-                      Últ. Dividendo (R$)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent"
-                      value={transOriginPayout}
-                      onChange={(e) => setTransOriginPayout(e.target.value)}
-                      title="Provento pago por cota/ação mais recente detectado."
-                    />
-                  </div>
-                </div>
+                </SRVFieldset>
               </div>
 
               {/* Destination configuration */}
-              <div className="bg-white border border-brand-line rounded-lg p-6 space-y-4">
-                <h2 className="text-xs font-bold text-green-600 uppercase tracking-tight mb-2 flex items-center gap-1.5">
-                  <span className="w-1.5 h-3 bg-green-500 rounded-full inline-block" />
-                  Ativo de Destino (Compra)
-                </h2>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">
-                    Selecionar Destino (Para)
-                  </label>
-                  <select
-                    className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-bold outline-none focus:border-green-400 transition-colors"
-                    value={transSelectedDest}
-                    onChange={(e) => setTransSelectedDest(e.target.value)}
-                  >
-                    <option value="">-- Escolher ativo cadastrado --</option>
-                    {assets.map((asset) => (
-                      <option key={asset.ticker} value={asset.ticker}>
-                        {asset.ticker} - {asset.description}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white border border-brand-line rounded-lg p-6">
+                <SRVFieldset
+                  title="Ativo de Destino (Compra)"
+                  titleClassName="text-xs font-bold text-green-600 uppercase tracking-tight mb-2 flex items-center gap-1.5"
+                  bulletClassName="bg-green-500"
+                >
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-tight">
-                      Preço Estimado Compra (R$)
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">
+                      Selecionar Destino (Para)
                     </label>
-                    <input
+                    <select
+                      className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-bold outline-none focus:border-green-400 transition-colors"
+                      value={transSelectedDest}
+                      onChange={(e) => setTransSelectedDest(e.target.value)}
+                    >
+                      <option value="">-- Escolher ativo cadastrado --</option>
+                      {assets.map((asset) => (
+                        <option key={asset.ticker} value={asset.ticker}>
+                          {asset.ticker} - {asset.description}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <SRVInput
+                      label="Preço Estimado Compra (R$)"
+                      classNameLabel="text-[11px] uppercase tracking-tight"
                       type="number"
                       min="0"
                       step="any"
-                      className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent placeholder-slate-300"
+                      className="placeholder-slate-300"
                       value={transDestPrice}
                       onChange={(e) => setTransDestPrice(e.target.value)}
                       placeholder="0,00"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-tight">
-                      Últ. Dividendo (R$)
-                    </label>
-                    <input
+                    <SRVInput
+                      label="Últ. Dividendo (R$)"
+                      classNameLabel="text-[11px] uppercase tracking-tight"
                       type="number"
                       min="0"
                       step="any"
-                      className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent placeholder-slate-300"
+                      className="placeholder-slate-300"
                       value={transDestPayout}
                       onChange={(e) => setTransDestPayout(e.target.value)}
                       placeholder="0,00"
                       title="Provento pago por cota/ação mais recente do destino detectado."
                     />
                   </div>
-                </div>
+                </SRVFieldset>
               </div>
             </div>
 
@@ -655,48 +570,51 @@ export default function Calculators() {
               {/* Grid comparing incomes */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Income Origin card */}
-                <div className="bg-white border border-brand-line rounded-lg p-5 flex flex-col justify-between shadow-sm">
+                <SRVCard
+                  title={`Provento com ${transSelectedOrigin || 'Ativo A'}`}
+                  titleClassName="text-[10px] text-slate-400 font-bold uppercase tracking-widest block"
+                >
+                  <p className="text-[10px] text-slate-400 italic mb-2">Situação Original</p>
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block">Provento com {transSelectedOrigin || 'Ativo A'}</span>
-                    <p className="text-[10px] text-slate-400 italic">Situação Original</p>
-                    <div className="mt-3">
-                      <p className="text-3xl font-extrabold text-slate-800 font-mono tracking-tighter">
-                        R$ {transferCalcResult.incomeA.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-[10px] mt-1 text-slate-400 font-mono">
-                        Base: {parseFloat(transOriginQty).toLocaleString('pt-BR')} un × R$ {parseFloat(transOriginPayout).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-                      </p>
-                    </div>
+                    <p className="text-3xl font-extrabold text-slate-800 font-mono tracking-tighter">
+                      R$ {transferCalcResult.incomeA.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-[10px] mt-1 text-slate-400 font-mono">
+                      Base: {parseFloat(transOriginQty).toLocaleString('pt-BR')} un × R$ {parseFloat(transOriginPayout).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                    </p>
                   </div>
-                </div>
+                </SRVCard>
 
                 {/* Expected Destiny Card */}
-                <div className="bg-white border border-brand-line rounded-lg p-5 flex flex-col justify-between shadow-sm">
+                <SRVCard
+                  title={`Provento Estimado em ${transSelectedDest || 'Ativo B'}`}
+                  titleClassName="text-[10px] text-brand-sidebar font-bold uppercase tracking-widest block"
+                >
+                  <p className="text-[10px] text-brand-accent font-bold uppercase italic mb-2">Nova Situação</p>
                   <div>
-                    <span className="text-[10px] text-brand-sidebar font-bold uppercase tracking-widest block">Provento Estimado em {transSelectedDest || 'Ativo B'}</span>
-                    <p className="text-[10px] text-brand-accent font-bold uppercase italic">Nova Situação</p>
-                    <div className="mt-3">
-                      <p className="text-3xl font-extrabold text-brand-accent font-mono tracking-tighter">
-                        R$ {transferCalcResult.incomeB.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-[10px] mt-1 text-slate-400 font-mono">
-                        Base: {transferCalcResult.qB.toLocaleString('pt-BR')} un × R$ {parseFloat(transDestPayout).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-                      </p>
-                    </div>
+                    <p className="text-3xl font-extrabold text-brand-accent font-mono tracking-tighter">
+                      R$ {transferCalcResult.incomeB.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-[10px] mt-1 text-slate-400 font-mono">
+                      Base: {transferCalcResult.qB.toLocaleString('pt-BR')} un × R$ {parseFloat(transDestPayout).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                    </p>
                   </div>
-                </div>
+                </SRVCard>
               </div>
 
               {/* Transfer Details / Breakdown */}
               {transSelectedOrigin && transSelectedDest && (
-                <div className="bg-white border border-brand-line rounded-lg p-6 shadow-sm space-y-4">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block pb-1 border-b border-brand-line">Simulação da Execução</span>
+                <SRVCard
+                  title="Simulação da Execução"
+                  titleClassName="text-[10px] uppercase font-bold tracking-widest text-slate-400 block pb-1 border-b border-brand-line mb-3"
+                  className="space-y-4"
+                >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-500">Recurso de Venda Gerado:</span>
                       <span className="font-mono font-bold text-slate-800">R$ {transferCalcResult.salesCapital.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                     </div>
-                    <div className="flex justify-between varitems-center text-xs">
+                    <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-500">Novas Cotas/Ações Compradas:</span>
                       <span className="font-mono font-bold text-slate-800">{transferCalcResult.qB.toLocaleString('pt-BR')} un de {transSelectedDest}</span>
                     </div>
@@ -711,7 +629,7 @@ export default function Calculators() {
                       </span>
                     </div>
                   </div>
-                </div>
+                </SRVCard>
               )}
             </div>
           </motion.div>

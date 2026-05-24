@@ -1,10 +1,10 @@
 import React from 'react';
-import { useDialog } from '@context/DialogContext';
+import { useSRVGlobalDialog } from '@context/SRVGlobalDialogContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertCircle, CheckCircle, X } from 'lucide-react';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 
-export function GlobalDialog() {
-  const { dialogState, closeDialog } = useDialog();
+export function SRVGlobalDialog() {
+  const { dialogState, closeDialog } = useSRVGlobalDialog();
 
   return (
     <AnimatePresence>

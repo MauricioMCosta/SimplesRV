@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useDatabase } from '@/src/context/DatabaseContext';
 import { Transaction } from '@/src/db/database.types';
 import { TransactionType, TransactionFormData } from './Transactions.types';
-import { useDialog } from '@/src/context/DialogContext';
+import { useSRVGlobalDialog } from '@/src/context/SRVGlobalDialogContext';
 import { Plus, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { DashboardTable } from '@/src/components/DashboardTable';
@@ -14,7 +14,7 @@ import { DataTableWrapper } from '@/src/components/DataTableWrapper';
 export default function Transactions() {
   const { transactions, assets, db } = useDatabase();
   const { addTransaction, deleteTransaction, getPosition } = db;
-  const { showAlertDialog, showConfirmDialog } = useDialog();
+  const { showAlertDialog, showConfirmDialog } = useSRVGlobalDialog();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<TransactionFormData>({
     ticker: '',

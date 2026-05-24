@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useDatabase } from '@/src/context/DatabaseContext';
 import { CustodianFormData } from './Custodians.types';
-import { useDialog } from '@/src/context/DialogContext';
+import { useSRVGlobalDialog } from '@/src/context/SRVGlobalDialogContext';
 import { Plus, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { DashboardTable } from '@/src/components/DashboardTable';
 import { Modal } from '@/src/components/Modal';
@@ -12,7 +12,7 @@ import * as CNPJ from '@/src/lib/cnpj';
 export default function Custodians() {
   const { custodians, assets, db } = useDatabase();
   const { addCustodian, updateCustodian, deleteCustodian } = db;
-  const { showAlertDialog, showConfirmDialog } = useDialog();
+  const { showAlertDialog, showConfirmDialog } = useSRVGlobalDialog();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 

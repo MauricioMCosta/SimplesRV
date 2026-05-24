@@ -5,8 +5,8 @@
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { DatabaseProvider } from '@context/DatabaseContext';
-import { DialogProvider } from '@context/DialogContext';
-import { GlobalDialog } from '@components/GlobalDialog';
+import { SRVGlobalDialogProvider } from '@context/SRVGlobalDialogContext';
+import { SRVGlobalDialog } from '@components/SRVGlobalDialog';
 import { Layout } from '@components/Layout';
 import Dashboard from '@pages/Dashboard';
 import Transactions from '@pages/Transactions';
@@ -22,8 +22,8 @@ export default function App() {
   return (
     <Router>
       <DatabaseProvider>
-        <DialogProvider>
-          <GlobalDialog />
+        <SRVGlobalDialogProvider>
+          <SRVGlobalDialog />
           <Layout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
@@ -37,7 +37,7 @@ export default function App() {
               <Route path="/calculators" element={<Calculators />} />
             </Routes>
           </Layout>
-        </DialogProvider>
+        </SRVGlobalDialogProvider>
       </DatabaseProvider>
     </Router>
   );

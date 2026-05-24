@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { DialogType, DialogState, DialogContextType } from './DialogContext.types';
+import { SRVGlobalDialogState, SRVGlobalDialogContextType } from './SRVGlobalDialogContext.types';
 
-const DialogContext = createContext<DialogContextType | undefined>(undefined);
+export const SRVGlobalDialogContext = createContext<SRVGlobalDialogContextType | undefined>(undefined);
 
-export const DialogProvider = ({ children }: { children: ReactNode }) => {
-  const [dialogState, setDialogState] = useState<DialogState>({
+export const SRVGlobalDialogProvider = ({ children }: { children: ReactNode }) => {
+  const [dialogState, setDialogState] = useState<SRVGlobalDialogState>({
     isOpen: false,
     type: 'alert',
     message: '',
@@ -40,16 +40,16 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <DialogContext.Provider value={{ showAlertDialog, showConfirmDialog, dialogState, closeDialog }}>
+    <SRVGlobalDialogContext.Provider value={{ showAlertDialog, showConfirmDialog, dialogState, closeDialog }}>
       {children}
-    </DialogContext.Provider>
+    </SRVGlobalDialogContext.Provider>
   );
 };
 
-export const useDialog = () => {
-  const context = useContext(DialogContext);
+export const useSRVGlobalDialog = () => {
+  const context = useContext(SRVGlobalDialogContext);
   if (!context) {
-    throw new Error('useDialog must be used within a DialogProvider');
+    throw new Error('useSRVGlobalDialog must be used within a SRVGlobalDialogProvider');
   }
   return context;
 };

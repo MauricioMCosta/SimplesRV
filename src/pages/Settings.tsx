@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useDatabase } from '@/src/context/DatabaseContext';
-import { useDialog } from '@/src/context/DialogContext';
+import { useSRVGlobalDialog } from '@/src/context/SRVGlobalDialogContext';
 import { Download, Upload, ShieldCheck, Database, RefreshCw, Zap, Trash2 } from 'lucide-react';
 
 export default function Settings() {
   const { db } = useDatabase();
   const { exportDB, importDB, forceRecalculate, consolidateTrades, resetDB } = db;
-  const { showAlertDialog, showConfirmDialog } = useDialog();
+  const { showAlertDialog, showConfirmDialog } = useSRVGlobalDialog();
   const [isImporting, setIsImporting] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [isConsolidating, setIsConsolidating] = useState(false);

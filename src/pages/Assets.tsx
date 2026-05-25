@@ -22,8 +22,7 @@ export default function Assets() {
     description: '',
     type: 'AÇÕES',
     custodianCnpj: '',
-    payingSourceCnpj: '',
-    fundCnpj: ''
+    cnpj: ''
   });
 
   const resetForm = () => {
@@ -32,8 +31,7 @@ export default function Assets() {
       description: '', 
       type: 'AÇÕES', 
       custodianCnpj: '', 
-      payingSourceCnpj: '',
-      fundCnpj: ''
+      cnpj: ''
     });
     setEditingId(null);
   };
@@ -45,8 +43,7 @@ export default function Assets() {
         description: asset.description || '',
         type: asset.type || 'AÇÕES',
         custodianCnpj: asset.custodianCnpj || '',
-        payingSourceCnpj: asset.payingSourceCnpj || '',
-        fundCnpj: asset.fundCnpj || ''
+        cnpj: asset.cnpj || ''
       });
       setEditingId(asset.id);
     } else {
@@ -92,15 +89,13 @@ export default function Assets() {
 
   const tableData = useMemo(() => assets.map(asset => {
     const custodian = custodians.find(c => c.cnpj === asset.custodianCnpj);
-    const payingSource = custodians.find(c => c.cnpj === asset.payingSourceCnpj);
-    const fund = custodians.find(c => c.cnpj === asset.fundCnpj);
+    const fund = custodians.find(c => c.cnpj === asset.cnpj);
     return {
       id: asset.id,
       data: { 
         ...asset,
         custodianName: custodian ? custodian.name : (asset.custodianCnpj || '-'),
-        payingSourceName: payingSource ? payingSource.name : (asset.payingSourceCnpj || '-'),
-        fundName: fund ? fund.name : (asset.fundCnpj || '-'),
+        fundName: fund ? fund.name : (asset.cnpj || '-'),
         status: asset.is_pending ? 'PENDENTE' : 'OK'
       },
       flags: { canEdit: true, canDelete: true }
@@ -112,7 +107,6 @@ export default function Assets() {
     description: "Descrição",
     type: "Tipo",
     custodianName: "Custodiante",
-    payingSourceName: "Fonte Pagadora",
     fundName: "CNPJ Fundo",
     status: "Status"
   }), []);
@@ -159,11 +153,11 @@ export default function Assets() {
     return custodian ? `${CNPJ.toText(custodian.cnpj)} | ${custodian.name}` : CNPJ.toText(cnpj);
   };
 
-  const handleCnpjChange = (field: 'custodianCnpj' | 'payingSourceCnpj' | 'fundCnpj', val: string) => {
+  const handleCnpjChange = (field: 'custodianCnpj' | 'cnpj', val: string) => {
     // If it's a selection from the list, extract CNPJ
     if (val.includes(' | ')) {
-      const cnpj = val.split(' | ')[0].replace(/\D/g, '');
-      setFormData(prev => ({ ...prev, [field]: cnpj }));
+      const cnpjVal = val.split(' | ')[0].replace(/\D/g, '');
+      setFormData(prev => ({ ...prev, [field]: cnpjVal }));
     } else {
       // For typed values, also strip everything except digits
       const onlyNumbers = val.replace(/\D/g, '');
@@ -250,28 +244,14 @@ export default function Assets() {
 
             <div>
               <SRVAutoComplete
-                label="Fonte Pagadora"
-                placeholder="CNPJ ou Nome..."
-                options={custodianOptions}
-                value={getDisplayCnpj(formData.payingSourceCnpj)}
-                onChange={val => handleCnpjChange('payingSourceCnpj', val)}
-                className={cn(isCnpjInvalid(formData.payingSourceCnpj) && "ring-1 ring-red-500")}
-              />
-              {isCnpjInvalid(formData.payingSourceCnpj) && (
-                <p className="text-[9px] text-red-500 font-bold mt-0.5 uppercase tracking-tighter italic">CNPJ Inválido</p>
-              )}
-            </div>
-
-            <div>
-              <SRVAutoComplete
                 label="CNPJ do Fundo"
                 placeholder="CNPJ ou Nome..."
                 options={custodianOptions}
-                value={getDisplayCnpj(formData.fundCnpj)}
-                onChange={val => handleCnpjChange('fundCnpj', val)}
-                className={cn(isCnpjInvalid(formData.fundCnpj) && "ring-1 ring-red-500")}
+                value={getDisplayCnpj(formData.cnpj)}
+                onChange={val => handleCnpjChange('cnpj', val)}
+                className={cn(isCnpjInvalid(formData.cnpj) && "ring-1 ring-red-500")}
               />
-              {isCnpjInvalid(formData.fundCnpj) && (
+              {isCnpjInvalid(formData.cnpj) && (
                 <p className="text-[9px] text-red-500 font-bold mt-0.5 uppercase tracking-tighter italic">CNPJ Inválido</p>
               )}
             </div>

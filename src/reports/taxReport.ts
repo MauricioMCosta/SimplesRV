@@ -25,8 +25,8 @@ export async function getTaxReportData(year: number): Promise<TaxReportData> {
     const tickerTxs = transactions.filter(t => t.ticker.toUpperCase() === ticker);
     const asset = assets.find(a => a.ticker.toUpperCase() === ticker);
     const custodian = custodians.find(c => c.cnpj === asset?.custodianCnpj);
-    const payingSource = custodians.find(c => c.cnpj === asset?.payingSourceCnpj);
-    const fund = custodians.find(c => c.cnpj === asset?.fundCnpj);
+    const fund = custodians.find(c => c.cnpj === asset?.cnpj);
+    const payingSource = fund || custodian;
 
     let currentQty = 0;
     let currentAvgPrice = 0;
@@ -85,9 +85,9 @@ export async function getTaxReportData(year: number): Promise<TaxReportData> {
         custodianName: custodian?.name || 'Custodiante não cadastrado',
         custodianCnpj: custodian?.cnpj || asset?.custodianCnpj || '-',
         payingSourceName: payingSource?.name || 'Fonte pagadora não cadastrada',
-        payingSourceCnpj: payingSource?.cnpj || asset?.payingSourceCnpj || '-',
+        payingSourceCnpj: payingSource?.cnpj || '-',
         fundName: fund?.name || 'Fundo não cadastrado',
-        fundCnpj: fund?.cnpj || asset?.fundCnpj || '-',
+        cnpj: fund?.cnpj || asset?.cnpj || '-',
         prevYearQty,
         currentYearQty: currentQty,
         currentYearAvgPrice: currentAvgPrice,
@@ -130,7 +130,7 @@ export function formatTaxReportMarkdown(data: TaxReportData): string {
   markdown += `Este relatório auxilia no preenchimento da Declaração de Ajuste Anual de Imposto de Renda.\n\n`;
 
   for (const item of data.items) {
-    markdown += `### **${item.ticker}** - ${item.description} (${CNPJ.toText(item.fundCnpj)})\n`;
+    markdown += `### **${item.ticker}** - ${item.description} (${CNPJ.toText(item.cnpj)})\n`;
     markdown += `- **Custodiante:** ${item.custodianName} - **CNPJ:** ${CNPJ.toText(item.custodianCnpj)}\n`;
     markdown += `- **Fonte Pagadora:** ${item.payingSourceName} - **CNPJ:** ${CNPJ.toText(item.payingSourceCnpj)}\n\n`;
     

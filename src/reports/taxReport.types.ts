@@ -11,7 +11,7 @@ export interface TaxReportItem {
   payingSourceName: string;
   payingSourceCnpj: string;
   fundName: string;
-  fundCnpj: string;
+  cnpj: string;
   prevYearQty: number;
   currentYearQty: number;
   currentYearAvgPrice: number;

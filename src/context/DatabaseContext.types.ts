@@ -1,4 +1,4 @@
-import * as dbActions from '@/src/db/database';
+import * as dbActions from '@/src/db/operations';
 import { Transaction, Position, Sell, Asset, Custodian } from '@/src/db/database.types';
 
 export interface DatabaseState {

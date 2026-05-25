@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
-import * as dbActions from '@/src/db/database';
+import * as dbActions from '@/src/db/operations';
 import { DatabaseState, Action, DatabaseContextType } from './DatabaseContext.types';
 
 const databaseReducer = (state: DatabaseState, action: Action): DatabaseState => {

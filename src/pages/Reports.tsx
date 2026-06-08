@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { FileBarChart, Play, Loader2, Download, ChevronRight } from 'lucide-react';
 import { reports, ReportDefinition } from '../reports';
 import { getReportYears, getTaxReportData, formatTaxReportMarkdown } from '../reports/taxReport';
+import { ReportTable, ReportThead, ReportTbody, ReportTr, ReportTh, ReportTd } from '../components/reports/ReportTable';
 
 export default function Reports() {
   const [selectedReport, setSelectedReport] = useState<ReportDefinition | null>(null);
@@ -53,19 +54,6 @@ export default function Reports() {
 
   return (
     <div className="max-w-5xl mx-auto py-8">
-      {/* Header Card */}
-      <div className="bg-white border border-brand-line p-10 rounded shadow-sm text-center flex flex-col items-center mb-6">
-        <div className="w-16 h-16 bg-brand-sidebar text-brand-accent font-bold tracking-tight text-xl flex items-center justify-center rounded-xl mb-4">
-          <FileBarChart size={32} />
-        </div>
-        <h1 className="text-3xl font-bold tracking-tight text-brand-sidebar mb-2">
-          Relatórios personalizados
-        </h1>
-        <p className="text-slate-500 max-w-lg mb-0 leading-relaxed">
-          Consulte posições, lucros e movimentações formatadas em relatórios simples e diretos.
-        </p>
-      </div>
-
       {!reportOutput ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {reports.map((report) => (
@@ -141,7 +129,17 @@ export default function Reports() {
                 <p className="text-sm text-slate-400 font-mono">Gerando relatório...</p>
               </div>
             ) : (
-              <Markdown remarkPlugins={[remarkGfm]}>
+              <Markdown 
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  table: ReportTable,
+                  thead: ReportThead,
+                  tbody: ReportTbody,
+                  tr: ReportTr,
+                  th: ReportTh,
+                  td: ReportTd,
+                }}
+              >
                 {reportOutput}
               </Markdown>
             )}

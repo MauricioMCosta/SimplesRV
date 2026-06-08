@@ -15,37 +15,59 @@ e que acabaram demandando um esforço de programação maior.
 
 ## 🛡️ Termos de Uso e Isenção de Responsabilidade
 
+### 0. Aceite do Usuário
+
+O usuário, ao acessar esse sistema e fazer o seu uso, automaticamente aceita de boa fé os termos desse
+contrato.
+
+O sistema $implesRV é apresentado "as is". Não há garantias e nem obrigações por parte do desenvolvedor em
+constantemente implementar requisitos vindos de usuários, pronta-correção de bugs.
+
+Em contrapartida, o usuário fica livre para usar, de forma livre e gratuita, para fins próprios e pessoais.
+ 
 ### 1. Não Substituição de Canais Oficiais
 O **$implesRV NÃO é uma aplicação que gerencia ativamente carteiras vinculadas**, não executa ordens e 
 **NÃO SUBSTITUI**, em hipótese alguma, os meios legais, contábeis e fiscais oficiais.
 
-- mantenha diligência no armazenamento das notas de corretagem dos brokers bancários, 
-- mantenha sempre atualizados os registros em canais oficiais, na B3, e/ou nas plataformas ligadas ao 
-governo federal e Receita Federal (exemplo: RevAR e carnê-leão/GCAP).
+Cabe ao usuário:
+- manter diligência no armazenamento das notas de corretagem fornecidas pelos brokers ou agentes bancários, 
+- manter sempre atualizados os registros em canais oficiais de gestão de mercado acionário e seus agentes ou 
+permissionários (bancos, brokers, bolsa de valores), e nas plataformas ligadas ao 
+governo federal e Receita Federal (exemplo: RevAR e recolhimentos carnê-leão/GCAP, etc).
+
 
 ### 2. Isenção de Perdas e Danos
+
 Explicitamos nossa total **isenção de todos os problemas ou perdas financeiras advindas do 
 mau-uso** ou não observância das boas práticas de custódia e decisões no mercado financeiro. 
 
-Este aplicativo apresenta consolidações financeiras e dados 
-formatados apenas a nível informativo de diário acadêmico/estudo individual, sem nenhuma validade frente 
-ao Governo, não possuindo vínculo ou autenticação cruzada do mercado real.
+Este aplicativo apresenta consolidações financeiras e dados  formatados apenas a nível informativo
+de uso individual, sem nenhuma validade frente ao Governo e instituições, não possuindo vínculo ou 
+autenticação cruzada do mercado real.
+
+As calculadoras somente geram informações para serem consumidas em caráter informativo e nunca imperativo. As análises 
+geradas são baseados somente na qualidade dos dados e seu processamento sem levar em conta viés de mercado ou análises precisas 
+que as corroborem.
+
+Use por conta e risco.
 
 ### 3. Privacidade e Gerência de Dados
+
 O $implesRV foi construído prezando o princípio da *ausência de servidores* ("serverless client-side"). 
 
 Deixamos claro que a gerência de dados é de **única e exclusiva responsabilidade do usuário**. 
 
 - Os dados das transações **não são coletados, transmitidos e nem compartilhados com terceiros**.
 - Não há armazenamento em nuvens ou em infraestrutura remota. 
-- Todo o conteúdo é persistido unicamente no banco de dados local **no seu navegador** (IndexedDB).
+- Todo o conteúdo é persistido unicamente no banco de dados local **no seu navegador** utilizando a tecnologia IndexedDB.
 
 > **Atenção:** Se você limpar os dados do navegador ou trocar de dispositivo sem ter um backup, as 
 informações serão perdidas.
 
+Recomendamos fazer o backup (via aplicativo, na aba de Configurações) e guardar o arquivo em local seguro. Você poderá restaurar
+o conteudo a qualquer instante usando o arquivo previamente salvado.
+
 ### 4. Boas Práticas de Segurança
-O software possui meios, na aba **Configurações**, de realizar **Backup** (Exportar JSON) e **Restore** 
-(Importar JSON) locais. 
 
 - É amplamente encorajado que o usuário adote o hábito constante de exportar seus dados.
 - Em computadores públicos ou compartilhados, lembre-se de limpar a base de dados após o uso por segurança.

@@ -22,7 +22,8 @@ export default function Assets() {
     description: '',
     type: 'AÇÕES',
     custodianCnpj: '',
-    cnpj: ''
+    cnpj: '',
+    inactive: false
   });
 
   const resetForm = () => {
@@ -31,7 +32,8 @@ export default function Assets() {
       description: '', 
       type: 'AÇÕES', 
       custodianCnpj: '', 
-      cnpj: ''
+      cnpj: '',
+      inactive: false
     });
     setEditingId(null);
   };
@@ -43,7 +45,8 @@ export default function Assets() {
         description: asset.description || '',
         type: asset.type || 'AÇÕES',
         custodianCnpj: asset.custodianCnpj || '',
-        cnpj: asset.cnpj || ''
+        cnpj: asset.cnpj || '',
+        inactive: !!asset.inactive
       });
       setEditingId(asset.id);
     } else {
@@ -96,6 +99,7 @@ export default function Assets() {
         ...asset,
         custodianName: custodian ? custodian.name : (asset.custodianCnpj || '-'),
         fundName: fund ? fund.name : (asset.cnpj || '-'),
+        inactiveDisplay: asset.inactive ? 'INATIVO' : 'ATIVO',
         status: asset.is_pending ? 'PENDENTE' : 'OK'
       },
       flags: { canEdit: true, canDelete: true }
@@ -108,12 +112,25 @@ export default function Assets() {
     type: "Tipo",
     custodianName: "Custodiante",
     fundName: "CNPJ Fundo",
+    inactiveDisplay: "Situação",
     status: "Status"
   }), []);
 
   const handleColumnRender = (row: any, key: string, val: any) => {
     if (key === 'ticker') {
       return { cellStyle: "font-bold text-brand-ink font-mono" };
+    }
+    if (key === 'inactiveDisplay') {
+      return {
+        cellValue: (
+          <span className={cn(
+            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+            val === 'ATIVO' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+          )}>
+            {val}
+          </span>
+        )
+      };
     }
     if (key === 'status') {
       return {
@@ -254,6 +271,19 @@ export default function Assets() {
               {isCnpjInvalid(formData.cnpj) && (
                 <p className="text-[9px] text-red-500 font-bold mt-0.5 uppercase tracking-tighter italic">CNPJ Inválido</p>
               )}
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 border-t border-brand-line/50">
+              <input
+                id="asset-inactive-checkbox"
+                type="checkbox"
+                className="w-4 h-4 rounded border-brand-line text-brand-accent focus:ring-brand-accent cursor-pointer"
+                checked={formData.inactive}
+                onChange={e => setFormData({ ...formData, inactive: e.target.checked })}
+              />
+              <label htmlFor="asset-inactive-checkbox" className="text-xs font-bold text-slate-600 uppercase tracking-tighter cursor-pointer select-none">
+                Marcar ativo como Inativo
+              </label>
             </div>
           </div>
 

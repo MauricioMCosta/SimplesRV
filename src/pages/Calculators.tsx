@@ -14,14 +14,30 @@ export default function Calculators() {
   // Option lists for autocompletes shared by sub-components
   const tickerOptions = useMemo(() => {
     const set = new Set<string>();
-    positions.forEach(p => set.add(p.ticker.toUpperCase()));
-    assets.forEach(a => set.add(a.ticker.toUpperCase()));
+    positions.forEach(p => {
+      const asset = assets.find(a => a.ticker.toUpperCase() === p.ticker.toUpperCase());
+      if (!asset || !asset.inactive) {
+        set.add(p.ticker.toUpperCase());
+      }
+    });
+    assets.forEach(a => {
+      if (!a.inactive) {
+        set.add(a.ticker.toUpperCase());
+      }
+    });
     return Array.from(set).sort();
   }, [positions, assets]);
 
   const positionsOptions = useMemo(() => {
-    return Array.from(new Set(positions.map(p => p.ticker.toUpperCase()))).sort();
-  }, [positions]);
+    return Array.from(new Set(
+      positions
+        .filter(p => {
+          const asset = assets.find(a => a.ticker.toUpperCase() === p.ticker.toUpperCase());
+          return !asset || !asset.inactive;
+        })
+        .map(p => p.ticker.toUpperCase())
+    )).sort();
+  }, [positions, assets]);
 
   return (
     <div className="max-w-6xl mx-auto py-6 space-y-6" id="calculators-page">

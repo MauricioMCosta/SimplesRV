@@ -138,7 +138,7 @@ export default function Transactions() {
     ticker: {
       label: "Ticker",
       filterable: true,
-      filterOptions: assets.map(a => ({ label: a.ticker, value: a.ticker }))
+      filterOptions: assets.filter(a => !a.inactive).map(a => ({ label: a.ticker, value: a.ticker }))
     },
     date: "Data",
     type: "Tipo",
@@ -218,7 +218,9 @@ export default function Transactions() {
     return null;
   };
 
-  const tickerOptions = Array.from(new Set(assets.map(a => a.ticker.toUpperCase()))).sort();
+  const tickerOptions = useMemo(() => {
+    return Array.from(new Set(assets.filter(a => !a.inactive).map(a => a.ticker.toUpperCase()))).sort();
+  }, [assets]);
 
   const handleFormKeyDown = (e: React.KeyboardEvent) => {
     // Prevent form submission on Enter as requested by user

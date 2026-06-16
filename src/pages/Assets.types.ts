@@ -4,4 +4,5 @@ export interface AssetFormData {
   type: string;
   custodianCnpj: string;
   cnpj: string;
+  inactive?: boolean;
 }

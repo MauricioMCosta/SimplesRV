@@ -39,6 +39,7 @@ export interface Asset {
   custodianCnpj?: string;
   cnpj?: string;
   is_pending?: boolean;
+  inactive?: boolean;
 }
 
 export interface Custodian {

@@ -21,8 +21,19 @@ export interface TransferStocksResult {
   isWorth: boolean;
 }
 
+export interface SnowballResult {
+  magicNumber: number;
+  totalCost: number;
+  monthlyPayout: number;
+  yieldPercent: number;
+  sharesNeeded: number;
+  currentIncome: number;
+  totalSharesAfter: number;
+  newIncome: number;
+}
+
 /**
- * Calculates current and future average price metrics for a stock/ticker when additional units are added.
+ * Calculates the Future Average Price metrics for a stock/ticker when additional units are added.
  */
 export function calculateFutureAveragePrice(
   currentQty: number,
@@ -90,3 +101,36 @@ export function calculateStockTransfer(
     isWorth,
   };
 }
+
+/**
+ * Calculates Snowball / Magic Number metrics for an asset.
+ * Determines the minimum number of shares needed so that future payout covers purchasing 1 share.
+ */
+export function calculateSnowball(
+  price: number,
+  payout: number,
+  currentQty: number = 0
+): SnowballResult {
+  const yieldPercent = price > 0 ? (payout / price) * 100 : 0;
+  // If payout is 0 or price is 0, we can't snowball
+  const magicNumber = payout > 0 ? Math.ceil(price / payout) : 0;
+  const totalCost = magicNumber * price;
+  const monthlyPayout = magicNumber * payout;
+
+  const currentIncome = currentQty * payout;
+  const sharesNeeded = Math.max(0, magicNumber - currentQty);
+  const totalSharesAfter = currentQty + sharesNeeded;
+  const newIncome = totalSharesAfter * payout;
+
+  return {
+    magicNumber,
+    totalCost,
+    monthlyPayout,
+    yieldPercent,
+    sharesNeeded,
+    currentIncome,
+    totalSharesAfter,
+    newIncome,
+  };
+}
+

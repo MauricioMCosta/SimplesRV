@@ -2,5 +2,5 @@
   "name": "SimplesRV",
   "description": "Um dashboard pessoal de Renda Variável simples de usar!",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

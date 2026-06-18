@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { TrendingUp, ArrowDownRight, ArrowRightLeft } from 'lucide-react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Copy, Check, FileText, TrendingUp, ArrowDownRight, RefreshCw } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { SRVFieldset } from '@components/SRVFieldset';
 import { SRVInput } from '@components/SRVInput';
-import { SRVCard } from '@components/SRVCard';
 import { SRVAutoComplete } from '@components/SRVAutoComplete';
 import { calculateStockTransfer } from '@utils/calculatorMath';
 import { Position, Asset, Transaction } from '@/src/db/database.types';
@@ -27,11 +28,14 @@ export function TransferCalculator({
   const [transOriginTicker, setTransOriginTicker] = useState<string>('');
   const [transOriginQty, setTransOriginQty] = useState<string>('0');
   const [transOriginPrice, setTransOriginPrice] = useState<string>('0');
+  const [transOriginAvgPrice, setTransOriginAvgPrice] = useState<string>('0');
   const [transOriginPayout, setTransOriginPayout] = useState<string>('0');
 
   const [transDestTicker, setTransDestTicker] = useState<string>('');
   const [transDestPrice, setTransDestPrice] = useState<string>('0');
   const [transDestPayout, setTransDestPayout] = useState<string>('0');
+
+  const [copied, setCopied] = useState(false);
 
   // Helper: Find the most recent DIV/JCP/REND payout for a ticker in transaction history
   const getMostRecentPayout = (ticker: string): number => {
@@ -50,10 +54,12 @@ export function TransferCalculator({
     if (pos) {
       setTransOriginQty(pos.qty.toString());
       setTransOriginPrice(pos.avgPrice.toFixed(2));
+      setTransOriginAvgPrice(pos.avgPrice.toFixed(2));
       setTransOriginPayout(getMostRecentPayout(uppercased).toString());
     } else if (uppercased === '') {
       setTransOriginQty('0');
       setTransOriginPrice('0');
+      setTransOriginAvgPrice('0');
       setTransOriginPayout('0');
     }
   };
@@ -83,9 +89,137 @@ export function TransferCalculator({
       parseFloat(transOriginPrice) || 0,
       parseFloat(transOriginPayout) || 0,
       parseFloat(transDestPrice) || 0,
-      parseFloat(transDestPayout) || 0
+      parseFloat(transDestPayout) || 0,
+      parseFloat(transOriginAvgPrice) || 0
     );
-  }, [transOriginQty, transOriginPrice, transOriginPayout, transDestPrice, transDestPayout]);
+  }, [transOriginQty, transOriginPrice, transOriginPayout, transDestPrice, transDestPayout, transOriginAvgPrice]);
+
+  const markdownReport = useMemo(() => {
+    if (!transOriginTicker || !transDestTicker) {
+      return `### 📊 Aguardando dados...
+Preencha as informações do **Ativo de Origem** e do **Ativo de Destino** acima para gerar o relatório de simulação de transferência.`;
+    }
+
+    const oQty = parseFloat(transOriginQty) || 0;
+    const oPrice = parseFloat(transOriginPrice) || 0;
+    const oAvg = parseFloat(transOriginAvgPrice) || 0;
+    const oPayout = parseFloat(transOriginPayout) || 0;
+    const dPrice = parseFloat(transDestPrice) || 0;
+    const dPayout = parseFloat(transDestPayout) || 0;
+
+    const {
+      incomeA,
+      salesCapital,
+      qB,
+      leftoverCapital,
+      incomeB,
+      yieldA,
+      yieldB,
+      incomeDiff,
+      incomeDiffPercent,
+      isWorth,
+      costBasis,
+      profitLoss,
+      pnlPercent,
+    } = transferCalcResult;
+
+    const isLoss = oAvg > oPrice;
+    const isGain = oPrice > oAvg && oAvg > 0;
+
+    const verdictLabel = isWorth 
+      ? '🟢 RECOMENDADA (Vantajosa sob a ótica de proventos periódicos)' 
+      : '🔴 NÃO RECOMENDADA (Desvantajosa sob a ótica de proventos periódicos)';
+
+    let pnlDetailsBlock = '';
+    if (oAvg > 0) {
+      const pnlColor = isLoss ? '🔴 Prejuízo' : '🟢 Lucro';
+      const recoveryText = (isLoss && incomeDiff > 0) 
+        ? `\n- **Tempo para Recuperação (Payback):** Serão necessários aproximadamente **${Math.ceil(Math.abs(profitLoss) / incomeDiff)} períodos/meses** de proventos incrementais de **${transDestTicker}** para amortizar e recuperar integralmente este prejuízo realizado.` 
+        : '';
+
+      pnlDetailsBlock = `
+### 💼 Análise Patrimonial e Preço Médio
+
+O ativo de origem **${transOriginTicker}** possui uma posição histórica de custo médio:
+
+- **Preço Médio de Aquisição:** R$ ${oAvg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+- **Custo Total de Aquisição:** R$ ${costBasis.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+- **Valor Bruto Estimado de Venda:** R$ ${salesCapital.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+- **Resultado da Venda (P&L):** **${pnlColor} de R$ ${profitLoss.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${pnlPercent.toFixed(2)}%)**
+${isLoss ? `
+> ⚠️ **Alerta Fiscal e Patrimonial (Prejuízo Realizado):** Ao vender abaixo do preço médio, você estará **realizando uma perda definitiva de capital** de R$ ${Math.abs(profitLoss).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} no seu patrimônio ativo.
+> 
+> No entanto, sob a ótica da Receita Federal do Brasil, esse prejuízo realizado poderá ser catalogado em seus controles fiscais para **compensação tributária futura** com ganhos auferidos sob a mesma modalidade de ativo (ações com ações, FIIs com FIIs).${recoveryText}` 
+: isGain ? `
+> 🎉 **Ganho Patrimonial:** Esta venda geraria um lucro patrimonial real de **R$ ${profitLoss.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** (+${pnlPercent.toFixed(2)}% sobre o custo original de aquisição). Considere a tributação sobre Ganho de Capital aplicável.` 
+: ''}`;
+    }
+
+    return `## 📊 Relatório de Simulação de Realocação: ${transOriginTicker} ➔ ${transDestTicker}
+
+---
+
+### Resumo Executivo
+
+**Veredito:** **${verdictLabel}**
+
+A operação de transferência de toda a posição atual provocará uma variação projetada de **${incomeDiff >= 0 ? '+' : ''}R$ ${incomeDiff.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** no seu provento recorrente por período, o que representa um impacto de **${incomeDiff >= 0 ? '+' : ''}${incomeDiffPercent.toFixed(2)}%** na fluxo de renda passiva periódico induzido por esta parcela de capital.
+
+---
+
+### 💰 Tabela Comparativa de Fluxo
+
+| Indicador | Situação Atual (${transOriginTicker}) | Nova Situação (${transDestTicker}) | Variação Estimada |
+| :--- | :---: | :---: | :---: |
+| **Quantidade** | ${oQty.toLocaleString('pt-BR')} un | ${qB.toLocaleString('pt-BR')} un | - |
+| **Preço Unitário (Venda / Compra)** | R$ ${oPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | R$ ${dPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | - |
+| **Último Provento Unitário** | R$ ${oPayout.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} | R$ ${dPayout.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} | - |
+| **Dividend Yield Periódico** | ${yieldA.toFixed(2)}% | ${yieldB.toFixed(2)}% | ${((yieldB - yieldA) >= 0 ? '+' : '')}${(yieldB - yieldA).toFixed(2)}% |
+| **Renda Passiva Periódica** | **R$ ${incomeA.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** | **R$ ${incomeB.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** | **R$ ${incomeDiff.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${incomeDiff >= 0 ? '+' : ''}${incomeDiffPercent.toFixed(2)}%)** |
+
+---
+${pnlDetailsBlock}
+
+### 🔧 Roteiro Operacional de Execução
+
+1. **Liquidação (Origem):** Realizar a venda de **${oQty.toLocaleString('pt-BR')}** unidades de **${transOriginTicker}** a **R$ ${oPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}**, auferindo um capital líquido de **R$ ${salesCapital.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**.
+2. **Reinvestimento (Destino):** Comprar **${qB.toLocaleString('pt-BR')}** cotas/ações de **${transDestTicker}** a **R$ ${dPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}**, totalizando um desembolso de **R$ ${(qB * dPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**.
+3. **Sobra de Caixa (Troco):** Sobrará uma margem residual de **R$ ${leftoverCapital.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** retida em conta líquida da corretora.
+
+---
+
+### 📝 Observações e Isenção de Responsabilidade
+* Os cálculos de renda futura projetada baseiam-se estritamente na distribuição pretérita reportada e não constituem promessas absolutas de renda.
+* Fatores adicionais como vacância física/financeira, flutuação cambial ou cortes inesperados de proventos não são contabilizados no modelo matemático elementar da ferramenta.
+`;
+  }, [
+    transOriginTicker,
+    transDestTicker,
+    transOriginQty,
+    transOriginPrice,
+    transOriginAvgPrice,
+    transOriginPayout,
+    transDestPrice,
+    transDestPayout,
+    transferCalcResult,
+  ]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(markdownReport);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleReset = () => {
+    setTransOriginTicker('');
+    setTransOriginQty('0');
+    setTransOriginPrice('0');
+    setTransOriginAvgPrice('0');
+    setTransOriginPayout('0');
+    setTransDestTicker('');
+    setTransDestPrice('0');
+    setTransDestPayout('0');
+  };
 
   return (
     <motion.div
@@ -96,10 +230,11 @@ export function TransferCalculator({
       transition={{ duration: 0.2 }}
       className="space-y-6"
     >
-      {/* ROW 1: (ativo de origem, venda) | ativo de destino (compra) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Origin configuration */}
-        <div className="bg-white border border-brand-line rounded-lg p-6">
+      {/* SECTION 1: Capture components form configuration */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="capture-form">
+        
+        {/* Origin configuration (Venda) */}
+        <div className="bg-white border border-brand-line rounded-lg p-5 shadow-sm">
           <SRVFieldset
             title="Ativo de Origem (Venda)"
             titleClassName="text-xs font-bold text-red-500 uppercase tracking-tight mb-2 flex items-center gap-1.5"
@@ -115,32 +250,45 @@ export function TransferCalculator({
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
                 <SRVInput
-                  label="Qtde"
-                  classNameLabel="text-[11px] leading-tighter uppercase tracking-tight"
+                  label="Quantidade (Qtde)"
+                  classNameLabel="text-[10px] uppercase font-bold text-slate-500 tracking-tight"
                   type="number"
                   min="0"
                   value={transOriginQty}
                   onChange={(e) => setTransOriginQty(e.target.value)}
                 />
               </div>
-              <div className="col-span-1">
+              <div>
+                <SRVInput
+                  label="Preço Médio (R$)"
+                  classNameLabel="text-[10px] uppercase font-bold text-indigo-600 tracking-tight"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={transOriginAvgPrice}
+                  onChange={(e) => setTransOriginAvgPrice(e.target.value)}
+                  title="Seu preço médio histórico deste ativo."
+                />
+              </div>
+              <div>
                 <SRVInput
                   label="Preço Venda (R$)"
-                  classNameLabel="text-[11px] leading-tighter uppercase tracking-tight"
+                  classNameLabel="text-[10px] uppercase font-bold text-red-500 tracking-tight"
                   type="number"
                   min="0"
                   step="any"
                   value={transOriginPrice}
                   onChange={(e) => setTransOriginPrice(e.target.value)}
+                  title="Preço proposto para a venda desse ativo."
                 />
               </div>
-              <div className="col-span-1">
+              <div>
                 <SRVInput
                   label="Últ. Dividendo (R$)"
-                  classNameLabel="text-[11px] leading-tighter uppercase tracking-tight"
+                  classNameLabel="text-[10px] uppercase font-bold text-slate-500 tracking-tight"
                   type="number"
                   min="0"
                   step="any"
@@ -153,8 +301,8 @@ export function TransferCalculator({
           </SRVFieldset>
         </div>
 
-        {/* Destination configuration */}
-        <div className="bg-white border border-brand-line rounded-lg p-6">
+        {/* Destination configuration (Compra) */}
+        <div className="bg-white border border-brand-line rounded-lg p-5 shadow-sm">
           <SRVFieldset
             title="Ativo de Destino (Compra)"
             titleClassName="text-xs font-bold text-green-600 uppercase tracking-tight mb-2 flex items-center gap-1.5"
@@ -170,161 +318,81 @@ export function TransferCalculator({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <SRVInput
-                label="Preço Estimado Compra (R$)"
-                classNameLabel="text-[11px] uppercase tracking-tight"
-                type="number"
-                min="0"
-                step="any"
-                className="placeholder-slate-300"
-                value={transDestPrice}
-                onChange={(e) => setTransDestPrice(e.target.value)}
-                placeholder="0,00"
-              />
-              <SRVInput
-                label="Últ. Dividendo (R$)"
-                classNameLabel="text-[11px] uppercase tracking-tight"
-                type="number"
-                min="0"
-                step="any"
-                className="placeholder-slate-300"
-                value={transDestPayout}
-                onChange={(e) => setTransDestPayout(e.target.value)}
-                placeholder="0,00"
-                title="Provento pago por cota/ação mais recente do destino detectado."
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <SRVInput
+                  label="Preço Estimado Compra (R$)"
+                  classNameLabel="text-[10px] uppercase font-bold text-green-600 tracking-tight"
+                  type="number"
+                  min="0"
+                  step="any"
+                  className="placeholder-slate-300"
+                  value={transDestPrice}
+                  onChange={(e) => setTransDestPrice(e.target.value)}
+                  placeholder="0,00"
+                />
+              </div>
+              <div>
+                <SRVInput
+                  label="Últ. Dividendo (R$)"
+                  classNameLabel="text-[10px] uppercase font-bold text-slate-500 tracking-tight"
+                  type="number"
+                  min="0"
+                  step="any"
+                  className="placeholder-slate-300"
+                  value={transDestPayout}
+                  onChange={(e) => setTransDestPayout(e.target.value)}
+                  placeholder="0,00"
+                  title="Provento pago por cota/ação mais recente do destino de investimento detectado."
+                />
+              </div>
             </div>
           </SRVFieldset>
         </div>
       </div>
 
-      {/* ROW 2: (provento com ativo A) | (provento estimado em ativo b) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Income Origin card */}
-        <SRVCard
-          title={`Provento com ${transOriginTicker || 'Ativo O'} (Venda)`}
-          titleClassName="text-[10px] text-slate-400 font-bold uppercase tracking-widest block"
-        >
-          <p className="text-[10px] text-slate-400 italic mb-2">Situação Original</p>
-          <div>
-            <p className="text-3xl font-extrabold text-slate-800 font-mono tracking-tighter">
-              R$ {transferCalcResult.incomeA.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-            <p className="text-[10px] mt-1 text-slate-400 font-mono">
-              Base: {parseFloat(transOriginQty).toLocaleString('pt-BR')} un × R$ {parseFloat(transOriginPayout).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-            </p>
-          </div>
-        </SRVCard>
-
-        {/* Expected Destiny Card */}
-        <SRVCard
-          title={`Provento Estimado em ${transDestTicker || 'Ativo D'} (Compra)`}
-          titleClassName="text-[10px] text-brand-sidebar font-bold uppercase tracking-widest block"
-        >
-          <p className="text-[10px] text-brand-accent font-bold uppercase italic mb-2">Nova Situação</p>
-          <div>
-            <p className="text-3xl font-extrabold text-brand-accent font-mono tracking-tighter">
-              R$ {transferCalcResult.incomeB.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-            <p className="text-[10px] mt-1 text-slate-400 font-mono">
-              Base: {transferCalcResult.qB.toLocaleString('pt-BR')} un × R$ {parseFloat(transDestPayout).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-            </p>
-          </div>
-        </SRVCard>
-      </div>
-
-      {/* ROW 3: (veredito da analise de troca) */}
-      <div className="space-y-6">
-        {/* Verdict Announcement component */}
-        <div className={cn(
-          "rounded-lg p-6 border transition-all shadow-sm flex flex-col gap-4 justify-between relative overflow-hidden",
-          !transOriginTicker || !transDestTicker
-            ? "bg-slate-50 border-slate-200 text-slate-600"
-            : transferCalcResult.isWorth
-              ? "bg-emerald-50 border-emerald-200 text-emerald-950"
-              : "bg-amber-50 border-amber-200 text-amber-950"
-        )}>
-          <div>
-            <span className="text-[10px] font-bold tracking-widest uppercase block text-slate-400">
-              Veredito da Análise de Troca
-            </span>
-
-            {!transOriginTicker || !transDestTicker ? (
-              <div className="mt-4 flex flex-col gap-1">
-                <h3 className="text-lg font-bold text-slate-800">Defina ou selecione ambos os ativos</h3>
-                <p className="text-xs text-slate-500">Selecione uma posição de origem para vender ou digite manualmente nos campos acima para avaliar se vale a pena trocar pelo ativo de destino.</p>
-              </div>
-            ) : transferCalcResult.isWorth ? (
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center gap-2 text-emerald-700">
-                  <TrendingUp size={24} />
-                  <h3 className="text-xl font-extrabold tracking-tight">Substituição Altamente Recomendada 👍</h3>
-                </div>
-                <p className="text-sm text-emerald-800 leading-relaxed font-sans">
-                  Fazer essa transferência aumentará consideravelmente sua distribuição esperada de proventos! O rendimento estimado gerado aumentará em <strong className="font-extrabold text-emerald-950 text-base font-mono">R$ {transferCalcResult.incomeDiff.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> por período de distribuição (uma variação positiva de <strong className="font-bold text-emerald-950 font-mono">+{transferCalcResult.incomeDiffPercent.toFixed(2)}%</strong>).
-                </p>
-              </div>
-            ) : (
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center gap-2 text-amber-700">
-                  <ArrowDownRight size={24} />
-                  <h3 className="text-xl font-extrabold tracking-tight">Substituição Não Vantajosa 👎</h3>
-                </div>
-                <p className="text-sm text-amber-800 leading-relaxed font-sans">
-                  Substituir esses ativos irá diminuir seus rendimentos de proventos periódicos. Você estaria reduzindo sua renda futura em cerca de <strong className="font-extrabold text-amber-950 text-base font-mono">R$ {Math.abs(transferCalcResult.incomeDiff).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> (redução de <strong className="font-bold text-amber-950 font-mono font-black">-{Math.abs(transferCalcResult.incomeDiffPercent).toFixed(2)}%</strong>). Sugere-se continuar alocado em {transOriginTicker}.
-                </p>
-              </div>
-            )}
+      {/* SECTION 2: Dynamic Live Report in Markdown Format */}
+      <div className="bg-white border border-brand-line rounded-lg shadow-sm overflow-hidden" id="report-md-box">
+        {/* Header Action Bar */}
+        <header className="px-6 py-4 border-b border-brand-line bg-slate-50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText size={16} className="text-slate-500" />
+            <span className="font-bold text-xs uppercase tracking-wider text-slate-600">Relatório Consolidado de Análise</span>
           </div>
 
-          {transOriginTicker && transDestTicker && (
-            <div className="mt-4 pt-4 border-t border-slate-200/50 flex flex-wrap gap-4 text-xs">
-              <div className="flex items-center gap-1">
-                <span className="font-bold uppercase text-[9px] text-slate-400">Yield Origem:</span>
-                <span className="font-mono font-bold text-slate-700">{transferCalcResult.yieldA.toFixed(2)}%</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="font-bold uppercase text-[9px] text-slate-400">Yield Destino:</span>
-                <span className="font-mono font-bold text-slate-700">{transferCalcResult.yieldB.toFixed(2)}%</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="font-bold uppercase text-[9px] text-slate-400">Recurso Venda:</span>
-                <span className="font-mono font-bold text-slate-700 mr-2">R$ {transferCalcResult.salesCapital.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-          )}
+          <div className="flex gap-2">
+            <button
+              onClick={handleReset}
+              className="px-3 py-1.5 border border-slate-200 text-slate-600 rounded-md text-[11px] font-bold hover:bg-slate-100 transition-all flex items-center gap-1.5 focus:outline-none"
+              title="Limpar todos os campos"
+            >
+              <RefreshCw size={12} />
+              Limpar
+            </button>
+            <button
+              onClick={handleCopy}
+              disabled={!transOriginTicker || !transDestTicker}
+              className={cn(
+                "px-3 py-1.5 text-[11px] font-bold rounded-md transition-all flex items-center gap-1.5 focus:outline-none",
+                !transOriginTicker || !transDestTicker
+                  ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+                  : copied
+                    ? "bg-emerald-600 text-white border border-emerald-600 hover:bg-emerald-700"
+                    : "bg-indigo-600 text-white border border-indigo-600 hover:bg-indigo-700"
+              )}
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+              {copied ? 'Copiado!' : 'Copiar Relatório'}
+            </button>
+          </div>
+        </header>
+
+        {/* Markdown Render Body */}
+        <div className="p-8 select-text prose prose-indigo prose-sm sm:prose-base max-w-none text-slate-700 overflow-x-auto">
+          <Markdown remarkPlugins={[remarkGfm]}>
+            {markdownReport}
+          </Markdown>
         </div>
-
-        {/* Transfer Details / Breakdown */}
-        {transOriginTicker && transDestTicker && (
-          <SRVCard
-            title="Simulação da Execução"
-            titleClassName="text-[10px] uppercase font-bold tracking-widest text-slate-400 block pb-1 border-b border-brand-line mb-3"
-            className="space-y-4"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500">Recurso de Venda Gerado:</span>
-                <span className="font-mono font-bold text-slate-800">R$ {transferCalcResult.salesCapital.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500">Novas Cotas/Ações Compradas:</span>
-                <span className="font-mono font-bold text-slate-800">{transferCalcResult.qB.toLocaleString('pt-BR')} un de {transDestTicker}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500">Preço Compra de {transDestTicker}:</span>
-                <span className="font-mono font-bold text-slate-800">R$ {parseFloat(transDestPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500">Troco ou Margem Residual (R$):</span>
-                <span className="font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                  R$ {transferCalcResult.leftoverCapital.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
-          </SRVCard>
-        )}
       </div>
     </motion.div>
   );

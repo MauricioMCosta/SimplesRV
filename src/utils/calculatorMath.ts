@@ -19,6 +19,9 @@ export interface TransferStocksResult {
   incomeDiff: number;
   incomeDiffPercent: number;
   isWorth: boolean;
+  costBasis: number;
+  profitLoss: number;
+  pnlPercent: number;
 }
 
 export interface SnowballResult {
@@ -71,7 +74,8 @@ export function calculateStockTransfer(
   fromPrice: number,
   fromPayout: number,
   toPrice: number,
-  toPayout: number
+  toPayout: number,
+  fromAvgPrice: number = 0
 ): TransferStocksResult {
   const incomeA = fromQty * fromPayout;
   const salesCapital = fromQty * fromPrice;
@@ -88,6 +92,10 @@ export function calculateStockTransfer(
 
   const isWorth = incomeDiff > 0;
 
+  const costBasis = fromQty * fromAvgPrice;
+  const profitLoss = salesCapital - costBasis;
+  const pnlPercent = costBasis > 0 ? (profitLoss / costBasis) * 100 : 0;
+
   return {
     incomeA,
     salesCapital,
@@ -99,6 +107,9 @@ export function calculateStockTransfer(
     incomeDiff,
     incomeDiffPercent,
     isWorth,
+    costBasis,
+    profitLoss,
+    pnlPercent,
   };
 }
 

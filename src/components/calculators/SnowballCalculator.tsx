@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Snowflake } from 'lucide-react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Copy, Check, FileText, RefreshCw, Snowflake } from 'lucide-react';
+import { cn } from '@/src/lib/utils';
 import { SRVFieldset } from '@components/SRVFieldset';
 import { SRVInput } from '@components/SRVInput';
-import { SRVCard } from '@components/SRVCard';
 import { SRVAutoComplete } from '@components/SRVAutoComplete';
 import { calculateSnowball } from '@utils/calculatorMath';
 import { Position, Asset, Transaction } from '@/src/db/database.types';
@@ -25,6 +27,8 @@ export function SnowballCalculator({
   const [snowPriceInput, setSnowPriceInput] = useState<string>('0');
   const [snowPayoutInput, setSnowPayoutInput] = useState<string>('0');
   const [snowCurrentQty, setSnowCurrentQty] = useState<string>('0');
+
+  const [copied, setCopied] = useState(false);
 
   // Helper: Find the most recent DIV/JCP/REND payout for a ticker in transaction history
   const getMostRecentPayout = (ticker: string): number => {
@@ -65,6 +69,88 @@ export function SnowballCalculator({
     );
   }, [snowPriceInput, snowPayoutInput, snowCurrentQty]);
 
+  const markdownReport = useMemo(() => {
+    if (!snowTickerInput) {
+      return `### 📊 Aguardando dados...
+Insira o **Código do Ativo (Ticker)** acima para carregar o preço, rendimento unitário e simular o efeito **Bola de Neve** financeiro.`;
+    }
+
+    const {
+      magicNumber,
+      totalCost,
+      monthlyPayout,
+      yieldPercent,
+      sharesNeeded,
+      currentIncome,
+      totalSharesAfter,
+      newIncome,
+    } = snowballCalcResult;
+
+    const price = parseFloat(snowPriceInput) || 0;
+    const payout = parseFloat(snowPayoutInput) || 0;
+    const currentQty = parseFloat(snowCurrentQty) || 0;
+
+    const progressPercent = magicNumber > 0 ? Math.min((currentQty / magicNumber) * 100, 100) : 0;
+    const nextMilestoneCost = sharesNeeded * price;
+
+    const progressDescription = sharesNeeded === 0
+      ? `🎉 **Meta Máxima Atingida (Efeito Bola de Neve Ativo):** Seus proventos acumulados originados por sua posição atual de **${currentQty.toLocaleString('pt-BR')} cotas** somam **R$ ${currentIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**. Este ganho supera o preço unitário de mercado do ativo (**R$ ${price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}**), possibilitando que seus dividendos adquiram **pelo menos 1 nova cota extra mensalmente** de maneira autosustentável, retroalimentando o processo infinito de juros compostos.`
+      : `🔄 **Fase de Acumulação Ativa:** Atualmente, sua carteira cumula **${currentQty.toLocaleString('pt-BR')} cotas** (gerando provento recorrente de **R$ ${currentIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**). Você completou **${progressPercent.toFixed(1)}%** do caminho rumo ao número mágico. Restam ainda **${sharesNeeded.toLocaleString('pt-BR')} cotas** para dar início à compra orgânica automática sem acréscimo de capital adicional.`;
+
+    return `## ❄️ Relatório de Simulação: Estratégia Bola de Neve para ${snowTickerInput}
+
+---
+
+### Resumo Técnico Instrumental
+
+* **Número Mágico de Cotas:** **${magicNumber.toLocaleString('pt-BR')} un**
+* **Custo da Meta (Aporte Total Estimado):** R$ ${totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+* **Progresso do Objetivo:** **${progressPercent.toFixed(1)}% concluído**
+
+---
+
+### 💰 Matriz de Planejamento de Proventos
+
+| Métrica Patrimonial | Sua Situação Atual | Meta (Número Mágico) | Futura Posição Estimada |
+| :--- | :---: | :---: | :---: |
+| **Quantidade de Cotas** | ${currentQty.toLocaleString('pt-BR')} un | ${magicNumber.toLocaleString('pt-BR')} un | **${totalSharesAfter.toLocaleString('pt-BR')} un** |
+| **Custo de Mercado do Ativo** | R$ ${price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | R$ ${price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | **R$ ${price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}** |
+| **Último Provento Distribuído** | R$ ${payout.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} | R$ ${payout.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} | **R$ ${payout.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}** |
+| **Dividend Yield Periódico** | ${yieldPercent.toFixed(2)}% | ${yieldPercent.toFixed(2)}% | **${yieldPercent.toFixed(2)}%** |
+| **Renda Passiva Periódica** | **R$ ${currentIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** | **R$ ${monthlyPayout.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** | **R$ ${newIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** |
+
+---
+
+### 🧐 Diagnóstico e Dinâmica Patrimonial
+
+${progressDescription}
+
+${sharesNeeded > 0 ? `
+> 🎯 **Plano de Ação:** Para romper a barreira técnica da bola de neve, é requerido um aporte adicional de **R$ ${nextMilestoneCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** para subscrever as **${sharesNeeded.toLocaleString('pt-BR')}** cotas complementares faltantes.` : ''}
+
+---
+
+### 🔧 Direcionamento Operacional
+
+1. **Número Mágico (Magic Number):** É o ponto de inflexão matemática onde a renda gerada pelo ativo é igual ou superior ao seu preço por cota (\`Preço / Rendimento Unitário\`).
+2. **Reinvestimento Sistemático:** Ao obter seus dividendos em conta líquida, execute ordens de compra fracionadas do próprio ativo para iniciar seu acúmulo em bola de neve.
+3. **Persistência de Longo Prazo:** Uma vez ultrapassado o Número Mágico, a velocidade de multiplicação de suas cotas acelera exponencialmente, pois cada provento recebido se transmuta em novos ativos geradores de mais renda futura.
+`;
+  }, [snowTickerInput, snowPriceInput, snowPayoutInput, snowCurrentQty, snowballCalcResult]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(markdownReport);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleReset = () => {
+    setSnowTickerInput('');
+    setSnowPriceInput('0');
+    setSnowPayoutInput('0');
+    setSnowCurrentQty('0');
+  };
+
   return (
     <motion.div
       key="snowball-tab"
@@ -72,13 +158,18 @@ export function SnowballCalculator({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
       transition={{ duration: 0.2 }}
-      className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+      className="space-y-6"
     >
-      {/* Input Section (5 Columns) */}
-      <div className="lg:col-span-5 bg-white border border-brand-line rounded-lg p-6 space-y-6">
-        <SRVFieldset title="Ativo & Dividendos">
-          <div className="space-y-4">
-            <div>
+      {/* SECTION 1: Capture components form configuration */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="capture-form-snow">
+        {/* Market Pricing details */}
+        <div className="bg-white border border-brand-line rounded-lg p-5 shadow-sm">
+          <SRVFieldset
+            title="Ativo & Proventos de Mercado"
+            titleClassName="text-xs font-bold text-blue-500 uppercase tracking-tight mb-2 flex items-center gap-1.5"
+            bulletClassName="bg-blue-400"
+          >
+            <div className="mb-4">
               <SRVAutoComplete
                 label="Ativo / Código (Ticker)"
                 placeholder="Ex: MXRF11, VGIR11..."
@@ -88,178 +179,99 @@ export function SnowballCalculator({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <SRVInput
-                label="Preço do Ativo (R$)"
-                type="number"
-                min="0"
-                step="any"
-                placeholder="0,00"
-                value={snowPriceInput}
-                onChange={(e) => setSnowPriceInput(e.target.value)}
-              />
-              <SRVInput
-                label="Rendimento Unitário (R$)"
-                type="number"
-                min="0"
-                step="any"
-                placeholder="0,00"
-                value={snowPayoutInput}
-                onChange={(e) => setSnowPayoutInput(e.target.value)}
-                title="Provento periódico pago por cada única ação/cota."
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <SRVInput
+                  label="Preço do Ativo (R$)"
+                  classNameLabel="text-[10px] uppercase font-bold text-slate-500 tracking-tight"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={snowPriceInput}
+                  onChange={(e) => setSnowPriceInput(e.target.value)}
+                />
+              </div>
+              <div>
+                <SRVInput
+                  label="Rendimento Unitário (R$)"
+                  classNameLabel="text-[10px] uppercase font-bold text-slate-500 tracking-tight"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={snowPayoutInput}
+                  onChange={(e) => setSnowPayoutInput(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
-        </SRVFieldset>
+          </SRVFieldset>
+        </div>
 
-        <SRVFieldset title="Sua Posição Atual (Opcional)" hasBorderTop>
-          <div>
-            <SRVInput
-              label="Quantidade que Já Possui"
-              type="number"
-              min="0"
-              placeholder="Ex: 10"
-              value={snowCurrentQty}
-              onChange={(e) => setSnowCurrentQty(e.target.value)}
-            />
-            <p className="text-[10px] text-slate-400 mt-1 italic leading-tight">
-              Ajuda a calcular as cotas faltantes para o efeito de juros compostos automáticos e compara sua renda.
-            </p>
-          </div>
-        </SRVFieldset>
+        {/* Current User position */}
+        <div className="bg-white border border-brand-line rounded-lg p-5 shadow-sm">
+          <SRVFieldset
+            title="Posição Patrimonial Atual"
+            titleClassName="text-xs font-bold text-indigo-600 uppercase tracking-tight mb-2 flex items-center gap-1.5"
+            bulletClassName="bg-indigo-500"
+          >
+            <div className="pt-1">
+              <SRVInput
+                label="Quantidade Atual em Carteira (Opcional)"
+                classNameLabel="text-[10px] uppercase font-bold text-indigo-600 tracking-tight"
+                type="number"
+                min="0"
+                value={snowCurrentQty}
+                onChange={(e) => setSnowCurrentQty(e.target.value)}
+              />
+              <p className="text-[10px] text-slate-400 mt-2 leading-snug">
+                Insira a quantidade de cotas que você já possui para que o relatório avalie precisamente o progresso atual, a carência em capital e o efeito multiplicativo da renda.
+              </p>
+            </div>
+          </SRVFieldset>
+        </div>
       </div>
 
-      {/* Metrics Section (7 Columns) */}
-      <div className="lg:col-span-7 flex flex-col gap-6">
-        {/* Snowball Focal Card */}
-        <div className="bg-slate-900 text-white rounded-lg p-6 border border-slate-800 shadow-md flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-5 text-white pointer-events-none">
-            <Snowflake size={130} />
+      {/* SECTION 2: Dynamic Live Report in Markdown Format */}
+      <div className="bg-white border border-brand-line rounded-lg shadow-sm overflow-hidden" id="report-md-box-snow">
+        {/* Header Action Bar */}
+        <header className="px-6 py-4 border-b border-brand-line bg-slate-50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText size={16} className="text-slate-500" />
+            <span className="font-bold text-xs uppercase tracking-wider text-slate-600">Relatório Bola de Neve</span>
           </div>
 
-          <div className="relative z-10">
-            <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-black">
-              {snowTickerInput ? `BOLA DE NEVE PARA ${snowTickerInput}` : 'ESTRATÉGIA BOLA DE NEVE'}
-            </span>
-            
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-xs text-slate-400">Número Mágico de Cotas</p>
-                <h3 className="text-4xl font-extrabold text-blue-400 font-mono mt-1 tracking-tighter">
-                  {snowballCalcResult.magicNumber.toLocaleString('pt-BR')} <span className="text-lg font-sans text-slate-300 font-medium">un</span>
-                </h3>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Quantidade mínima do ativo para que o rendimento receba o valor de 1 nova cota.
-                </p>
-              </div>
-
-              <div className="flex flex-col justify-end">
-                <p className="text-xs text-slate-400">Rendimento Recebido</p>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="text-2xl font-extrabold text-green-400 font-mono">
-                    R$ {snowballCalcResult.monthlyPayout.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 mt-0.5 leading-none">
-                  Rendimento estimado {parseFloat(snowPriceInput) > 0 ? `(${snowballCalcResult.yieldPercent.toFixed(2)}% dy)` : ''}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-slate-800 text-xs text-slate-400 flex items-center gap-2 justify-between">
-            <span className="font-mono">Fórmula: Teto(Preço / Rendimento Unitário)</span>
-            <div className="font-mono text-[10px] bg-slate-800 text-slate-200 px-2 py-0.5 rounded font-bold uppercase">
-              Efeito Bola de Neve
-            </div>
-          </div>
-        </div>
-
-        {/* Detail cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SRVCard
-            title="Custo da Meta"
-            titleClassName="text-[10px] text-slate-400 font-bold uppercase tracking-wider block"
-          >
-            <div className="mt-1 flex flex-col gap-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-500">Cotas da Meta:</span>
-                <span className="font-mono font-bold text-slate-800">{snowballCalcResult.magicNumber.toLocaleString('pt-BR')} un</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-500">Preço Unitário:</span>
-                <span className="font-mono font-bold text-slate-800">R$ {parseFloat(snowPriceInput).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between text-xs pt-2 border-t border-brand-line">
-                <span className="font-bold text-slate-600">Aporte Estimado Total:</span>
-                <span className="font-mono font-black text-slate-900">R$ {snowballCalcResult.totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-          </SRVCard>
-
-          <SRVCard
-            title="Progresso Técnico"
-            titleClassName="text-[10px] text-brand-accent font-bold uppercase tracking-wider block"
-          >
-            <div className="mt-1 flex flex-col gap-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-500">Já possui:</span>
-                <span className="font-mono font-bold text-slate-800">{parseFloat(snowCurrentQty).toLocaleString('pt-BR')} un</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-500">Cotas faltantes:</span>
-                <span className="font-mono font-bold text-indigo-600 bg-indigo-50 px-1 rounded">{snowballCalcResult.sharesNeeded.toLocaleString('pt-BR')} un</span>
-              </div>
-              <div className="flex justify-between text-xs pt-2 border-t border-brand-line">
-                <span className="font-bold text-brand-sidebar">Custo para atingir:</span>
-                <span className="font-mono font-black text-brand-accent">
-                  R$ {(snowballCalcResult.sharesNeeded * (parseFloat(snowPriceInput) || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
-          </SRVCard>
-        </div>
-
-        {/* Rendimento Futuro Consolidado */}
-        <SRVCard
-          title="Rendimento Futuro Consolidado"
-          titleClassName="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-1"
-        >
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
-            <div>
-              <p className="text-xs text-slate-500">Renda Atual</p>
-              <p className="text-lg font-bold font-mono text-slate-700 mt-1">
-                R$ {snowballCalcResult.currentIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 font-medium">Quantidade Nova Total</p>
-              <p className="text-lg font-bold font-mono text-slate-800 mt-1">
-                {snowballCalcResult.totalSharesAfter.toLocaleString('pt-BR')} <span className="text-xs font-sans text-slate-400">un</span>
-              </p>
-            </div>
-            <div className="col-span-2 lg:col-span-1">
-              <p className="text-xs text-slate-500 font-medium text-green-700">Renda Nova Estimada</p>
-              <p className="text-lg font-extrabold font-mono text-green-600 mt-1">
-                R$ {snowballCalcResult.newIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-          </div>
-
-          {parseFloat(snowPayoutInput) > 0 && parseFloat(snowPriceInput) > 0 && (
-            <div className="mt-4 pt-4 border-t border-brand-line text-xs">
-              {snowballCalcResult.sharesNeeded === 0 ? (
-                <p className="text-emerald-700 bg-emerald-50 p-2.5 rounded border border-emerald-100 font-bold flex items-center gap-2">
-                  <span>🎉</span> Benefício bola de neve de comprar 1 ação extra automaticamente está ativo! Seus dividendos já cobrem o custo de uma cota extra.
-                </p>
-              ) : (
-                <p className="text-slate-600">
-                  Faltam <strong className="font-bold text-indigo-600">{snowballCalcResult.sharesNeeded.toLocaleString('pt-BR')} cotas</strong> para que seus rendimentos comprem uma nova ação.
-                </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleReset}
+              className="px-3 py-1.5 border border-slate-200 text-slate-600 rounded-md text-[11px] font-bold hover:bg-slate-100 transition-all flex items-center gap-1.5 focus:outline-none"
+              title="Limpar todos os campos"
+            >
+              <RefreshCw size={12} />
+              Limpar
+            </button>
+            <button
+              onClick={handleCopy}
+              disabled={!snowTickerInput}
+              className={cn(
+                "px-3 py-1.5 text-[11px] font-bold rounded-md transition-all flex items-center gap-1.5 focus:outline-none",
+                !snowTickerInput
+                  ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+                  : copied
+                    ? "bg-emerald-600 text-white border border-emerald-600 hover:bg-emerald-700"
+                    : "bg-indigo-600 text-white border border-indigo-600 hover:bg-indigo-700"
               )}
-            </div>
-          )}
-        </SRVCard>
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+              {copied ? 'Copiado!' : 'Copiar Relatório'}
+            </button>
+          </div>
+        </header>
+
+        {/* Markdown Render Body */}
+        <div className="p-8 select-text prose prose-indigo prose-sm sm:prose-base max-w-none text-slate-700 overflow-x-auto">
+          <Markdown remarkPlugins={[remarkGfm]}>
+            {markdownReport}
+          </Markdown>
+        </div>
       </div>
     </motion.div>
   );

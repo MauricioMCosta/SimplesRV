@@ -1,39 +1,35 @@
 export function fromText(cnpj: string): string {
-  return cnpj.replace(/\D/g, '');
+  return cnpj.replace(/\W/g, '').replace('_','');
 }
 
 export function toText(cnpj: string): string {
   const digits = fromText(cnpj);
   if (digits.length !== 14) return digits;
   return digits.replace(
-    /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
+    /^(\w{2})(\w{3})(\w{3})(\w{4})(\d{2})$/,
     '$1.$2.$3/$4-$5'
   );
 }
 
 export function isValidCNPJ(cnpj: string): boolean {
+
+  const asciiMap=(s:string)=>s.toUpperCase().split('').map(c=>c.charCodeAt(0)-48);
+  const dotProduct=(a:number[],b:number[])=>a.reduce((sum:number, val:number, i:number) => sum + val * b[i], 0);
+  const dv=(n:number)=>{let v=n %11; return v<2?0:11-v;}
+
   const digits = fromText(cnpj);
 
   if (digits.length !== 14) return false;
 
-  // Check for common invalid sequences (all same digits)
-  if (/^(\d)\1+$/.test(digits)) return false;
-
-  const calculateDigit = (slice: string, weights: number[]): number => {
-    const sum = slice
-      .split('')
-      .reduce((acc, digit, idx) => acc + parseInt(digit) * weights[idx], 0);
-    const remainder = sum % 11;
-    return remainder < 2 ? 0 : 11 - remainder;
-  };
+  const cnpjx=asciiMap(digits).slice(0,12); 
 
   const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
   const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 
-  const digit1 = calculateDigit(digits.slice(0, 12), weights1);
-  const digit2 = calculateDigit(digits.slice(0, 13), weights2);
+  const dv1 = dv(dotProduct([...cnpjx], weights1));
+  const dv2 = dv(dotProduct([...cnpjx,dv1], weights2));
 
   return (
-    digit1 === parseInt(digits[12]) && digit2 === parseInt(digits[13])
+    dv1 === parseInt(digits[12]) && dv2 === parseInt(digits[13])
   );
 }

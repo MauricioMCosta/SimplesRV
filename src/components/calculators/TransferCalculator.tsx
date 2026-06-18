@@ -247,6 +247,7 @@ ${pnlDetailsBlock}
                 options={positionsOptions}
                 value={transOriginTicker}
                 onChange={handleOriginTickerInput}
+                notFoundHint="Ativo não encontrado."
               />
             </div>
 
@@ -315,6 +316,7 @@ ${pnlDetailsBlock}
                 options={tickerOptions}
                 value={transDestTicker}
                 onChange={handleDestTickerInput}
+                notFoundHint="Ativo não encontrado."
               />
             </div>
 

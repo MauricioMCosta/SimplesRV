@@ -10,6 +10,7 @@ interface SRVAutoCompleteProps {
   className?: string;
   label?: string;
   required?: boolean;
+  notFoundHint?: string;
 }
 
 export function SRVAutoComplete({
@@ -19,7 +20,8 @@ export function SRVAutoComplete({
   placeholder = 'Buscar...',
   className,
   label,
-  required
+  required,
+  notFoundHint = 'Nenhum ativo encontrado. Pressione Enter para adicionar "{searchTerm}".'
 }: SRVAutoCompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(value);
@@ -159,7 +161,7 @@ export function SRVAutoComplete({
             </div>
           ) : (
             <div className="px-4 py-3 text-xs text-slate-400 italic">
-              Nenhum ativo encontrado. Pressione Enter para adicionar "{searchTerm}".
+              {notFoundHint.replace('{searchTerm}', searchTerm)}
             </div>
           )}
         </div>

@@ -176,6 +176,7 @@ ${sharesNeeded > 0 ? `
                 options={tickerOptions}
                 value={snowTickerInput}
                 onChange={handleSnowTickerInput}
+                notFoundHint="Ativo não encontrado."
               />
             </div>
 

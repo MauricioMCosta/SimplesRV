@@ -162,6 +162,7 @@ A nova composição patrimonial deste ativo passará a representar um total gera
                 options={tickerOptions}
                 value={avgTickerInput}
                 onChange={handleAvgTickerChange}
+                notFoundHint="Ativo não encontrado."
               />
             </div>
 

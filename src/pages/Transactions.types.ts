@@ -9,4 +9,6 @@ export interface TransactionFormData {
   type: TransactionType;
   qty: string;
   price: string;
+  acquisition_type?: 'REG' | 'BON' | 'SUB';
+  sub_ticker?: string;
 }

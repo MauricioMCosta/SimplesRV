@@ -7,6 +7,8 @@ export interface Transaction {
   price: number;
   created_at?: string;
   is_pending?: boolean;
+  acquisition_type?: 'REG' | 'BON' | 'SUB';
+  sub_ticker?: string;
 }
 
 export interface Metadata {

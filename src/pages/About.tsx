@@ -88,7 +88,7 @@ export default function About() {
         <h1 className="text-3xl font-bold tracking-tight text-slate-800 mb-2">
           $imples<span className="text-brand-accent">RV</span>
         </h1>
-        <p className="text-sm font-mono text-slate-400 mb-6">Versão: 1.2.0-stable</p>
+        <p className="text-sm font-mono text-slate-400 mb-6">Versão: 1.3.0-stable</p>
 
         <div className="text-xs text-slate-400 space-y-1">
           <p>Autoria: Desenvolvido e projetado exclusivamente pela comunidade.</p>

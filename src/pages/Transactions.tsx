@@ -21,7 +21,9 @@ export default function Transactions() {
     date: new Date().toISOString().split('T')[0],
     type: 'BUY',
     qty: '',
-    price: ''
+    price: '',
+    acquisition_type: 'REG',
+    sub_ticker: ''
   });
   
   const handleOpenForm = (type: TransactionType = 'BUY', editData?: Transaction) => {
@@ -32,7 +34,9 @@ export default function Transactions() {
         date: editData.date,
         type: editData.type,
         qty: editData.qty.toString(),
-        price: editData.price.toString()
+        price: editData.price.toString(),
+        acquisition_type: editData.acquisition_type || 'REG',
+        sub_ticker: editData.sub_ticker || ''
       });
     } else {
       setFormData({
@@ -40,7 +44,9 @@ export default function Transactions() {
         date: new Date().toISOString().split('T')[0],
         type,
         qty: '',
-        price: ''
+        price: '',
+        acquisition_type: 'REG',
+        sub_ticker: ''
       });
     }
     setShowForm(true);
@@ -83,13 +89,23 @@ export default function Transactions() {
       }
     }
 
+    const acquisition_type = formData.type === 'BUY' ? (formData.acquisition_type || 'REG') : undefined;
+    const sub_ticker = formData.type === 'BUY' && acquisition_type === 'SUB' && formData.sub_ticker ? formData.sub_ticker.toUpperCase().trim() : undefined;
+
+    if (acquisition_type === 'SUB' && !sub_ticker) {
+      showAlertDialog('Favor informar o ticker de subscrição.');
+      return;
+    }
+
     if (formData.id) {
       await db.updateTransaction(formData.id, {
         ticker,
         date: formData.date,
         type: formData.type,
         qty,
-        price: isCorporateAction ? 0 : parseFloat(formData.price)
+        price: isCorporateAction ? 0 : parseFloat(formData.price),
+        acquisition_type,
+        sub_ticker
       });
     } else {
       await addTransaction({
@@ -97,7 +113,9 @@ export default function Transactions() {
         date: formData.date,
         type: formData.type,
         qty,
-        price: isCorporateAction ? 0 : parseFloat(formData.price)
+        price: isCorporateAction ? 0 : parseFloat(formData.price),
+        acquisition_type,
+        sub_ticker
       });
     }
 
@@ -106,7 +124,9 @@ export default function Transactions() {
       date: new Date().toISOString().split('T')[0],
       type: 'BUY',
       qty: '',
-      price: ''
+      price: '',
+      acquisition_type: 'REG',
+      sub_ticker: ''
     });
     setShowForm(false);
   };
@@ -189,15 +209,29 @@ export default function Transactions() {
       return { cellStyle: "text-[11px] text-slate-500 font-mono italic" };
     }
     if (key === 'type') {
+      const isSub = row.acquisition_type === 'SUB';
+      const isBon = row.acquisition_type === 'BON';
       return {
         cellValue: (
-          <span className={cn(
-            "text-[9px] font-bold px-1.5 py-0.5 rounded",
-            val === 'BUY' || val === 'DAY' ? "bg-green-100 text-green-700" : 
-            val === 'SELL' || val === 'SWING' ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"
-          )}>
-            {val}
-          </span>
+          <div className="flex flex-col gap-1 items-start">
+            <span className={cn(
+              "text-[9px] font-bold px-1.5 py-0.5 rounded",
+              val === 'BUY' || val === 'DAY' ? "bg-green-100 text-green-700" : 
+              val === 'SELL' || val === 'SWING' ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-700"
+            )}>
+              {val}
+            </span>
+            {val === 'BUY' && isBon && (
+              <span className="text-[8px] bg-indigo-50 text-indigo-700 font-bold border border-indigo-100 px-1 rounded uppercase tracking-tighter scale-95 origin-left">
+                BONIFICAÇÃO
+              </span>
+            )}
+            {val === 'BUY' && isSub && (
+              <span className="text-[8px] bg-amber-50 text-amber-700 font-bold border border-amber-100 px-1 rounded flex items-center gap-0.5 uppercase tracking-tighter scale-95 origin-left">
+                SUB: {row.sub_ticker}
+              </span>
+            )}
+          </div>
         )
       };
     }
@@ -237,6 +271,7 @@ export default function Transactions() {
         title={formData.id ? "Editar Evento" : "Registrar Novo Evento"}
       >
         <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="space-y-4">
+          {/* ROW 1: [Ticker] [Data da Transação] */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <SRVAutoComplete
@@ -259,13 +294,21 @@ export default function Transactions() {
             </div>
           </div>
 
+          {/* ROW 2: [Tipo de Evento] [Tipo de Aquisição] */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Tipo de Evento</label>
               <select
                 className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm outline-none focus:border-brand-accent transition-colors"
                 value={formData.type}
-                onChange={e => setFormData({ ...formData, type: e.target.value as any })}
+                onChange={e => {
+                  const newType = e.target.value as any;
+                  setFormData({ 
+                    ...formData, 
+                    type: newType,
+                    acquisition_type: newType === 'BUY' ? (formData.acquisition_type || 'REG') : 'REG'
+                  });
+                }}
               >
                 <option value="BUY">COMPRA (BUY)</option>
                 <option value="SELL">VENDA (SELL)</option>
@@ -276,6 +319,23 @@ export default function Transactions() {
                 <option value="INPLIT">AGRUPAMENTO (INPLIT)</option>
               </select>
             </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Tipo de Aquisição</label>
+              <select
+                disabled={formData.type !== 'BUY'}
+                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm outline-none focus:border-brand-accent transition-colors disabled:opacity-50 disabled:bg-slate-200"
+                value={formData.type === 'BUY' ? (formData.acquisition_type || 'REG') : 'REG'}
+                onChange={e => setFormData({ ...formData, acquisition_type: e.target.value as any })}
+              >
+                <option value="REG">REGULAR (REG)</option>
+                <option value="BON">BONIFICAÇÃO (BON)</option>
+                <option value="SUB">SUBSCRIÇÃO (SUB)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* ROW 3: [Volume / Fator] [Preço Unitário] */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Volume / Fator</label>
               <input
@@ -292,25 +352,53 @@ export default function Transactions() {
                 {(formData.type === 'BUY' || formData.type === 'SELL' || formData.type === 'DIV' || formData.type === 'JCP' || formData.type === 'REND') && 'Quantidade de cotas/ações'}
               </p>
             </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Preço Unitário</label>
+              <input
+                type="number"
+                step="any"
+                placeholder="0.00"
+                disabled={formData.type === 'SPLIT' || formData.type === 'INPLIT'}
+                className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors disabled:opacity-50 disabled:bg-slate-200"
+                value={formData.type === 'SPLIT' || formData.type === 'INPLIT' ? '' : formData.price}
+                onChange={e => setFormData({ ...formData, price: e.target.value })}
+              />
+              {(formData.type === 'SPLIT' || formData.type === 'INPLIT') ? (
+                <p className="text-[10px] text-slate-400 mt-1">
+                  O preço médio será ajustado automaticamente com base no fator informado.
+                </p>
+              ) : (
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Valor unitário pago/recebido por cota.
+                </p>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-tighter">Preço Unitário</label>
-            <input
-              type="number"
-              step="any"
-              placeholder="0.00"
-              disabled={formData.type === 'SPLIT' || formData.type === 'INPLIT'}
-              className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm font-mono outline-none focus:border-brand-accent transition-colors disabled:opacity-50 disabled:bg-slate-200"
-              value={formData.type === 'SPLIT' || formData.type === 'INPLIT' ? '' : formData.price}
-              onChange={e => setFormData({ ...formData, price: e.target.value })}
-            />
-            {(formData.type === 'SPLIT' || formData.type === 'INPLIT') && (
-              <p className="text-[10px] text-slate-400 mt-1">
-                O preço médio será ajustado automaticamente com base no fator informado.
-              </p>
-            )}
-          </div>
+          {/* Conditional helpers and auxiliary sub_ticker fields for SUBSCRIPTION or BONIFICATION */}
+          {formData.type === 'BUY' && formData.acquisition_type === 'BON' && (
+            <div className="p-3 bg-indigo-50 border border-indigo-100 rounded text-[11px] text-indigo-700 leading-relaxed">
+              <strong>💡 Bonificação de Ativos:</strong> Informe a quantidade recebida e o valor unitário de incorporação estabelecido no fato relevante para que o custo médio seja calibrado corretamente sem impactar o fluxo financeiro.
+            </div>
+          )}
+
+          {formData.type === 'BUY' && formData.acquisition_type === 'SUB' && (
+            <div className="p-3 bg-amber-50 border border-amber-100 rounded space-y-3">
+              <div className="text-[11px] text-amber-800 leading-relaxed">
+                <strong>💡 Subscrição Exercida:</strong> Informe abaixo o ticker do correspondente direito de subscrição (ex: MXRF12). O sistema incorporará o custo de custo médio do direito exercido caso existam transações registradas nele.
+              </div>
+              <div>
+                <SRVAutoComplete
+                  label="Ticker Direito (Subscrição)"
+                  placeholder="Ex: MXRF12"
+                  options={tickerOptions}
+                  value={formData.sub_ticker || ''}
+                  onChange={value => setFormData({ ...formData, sub_ticker: value })}
+                  required
+                />
+              </div>
+            </div>
+          )}
 
           <div className="pt-4 border-t border-brand-line flex justify-end gap-3">
             <button

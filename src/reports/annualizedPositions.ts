@@ -1,6 +1,7 @@
 import { db } from '../db/database';
 import { Transaction } from '../db/database.types';
 import { ReportDefinition } from './reports.types';
+import { computeRightsAvgPriceMem } from '../db/operations';
 
 export const annualizedPositionsReport: ReportDefinition = {
   id: 'annualized-positions',
@@ -30,7 +31,21 @@ export const annualizedPositionsReport: ReportDefinition = {
 
     // For each ticker, compute history
     for (const ticker of tickers) {
-      const tickerTxs = transactions.filter(t => t.ticker.toUpperCase() === ticker);
+      const realTxs = transactions.filter(t => t.ticker.toUpperCase() === ticker);
+      const subExercises = transactions.filter(t => t.acquisition_type === 'SUB' && t.sub_ticker?.toUpperCase() === ticker);
+
+      const tickerTxs = [
+        ...realTxs,
+        ...subExercises.map(tx => ({
+          ...tx,
+          ticker: ticker,
+          type: 'EXERCISE' as const,
+          qty: tx.qty,
+          price: 0
+        }))
+      ];
+      tickerTxs.sort((a, b) => a.date.localeCompare(b.date));
+
       let currentQty = 0;
       let currentAvgPrice = 0;
 
@@ -45,10 +60,14 @@ export const annualizedPositionsReport: ReportDefinition = {
           
           if (t.type === 'BUY') {
             const prevTotal = currentQty * currentAvgPrice;
-            const currentTotal = t.qty * t.price;
+            let priceWithRights = t.price;
+            if (t.acquisition_type === 'SUB' && t.sub_ticker) {
+              priceWithRights += computeRightsAvgPriceMem(transactions, t.sub_ticker, t.date);
+            }
+            const currentTotal = t.qty * priceWithRights;
             currentQty += t.qty;
             currentAvgPrice = currentQty > 0 ? (prevTotal + currentTotal) / currentQty : 0;
-          } else if (t.type === 'SELL') {
+          } else if (t.type === 'SELL' || (t.type as string) === 'EXERCISE') {
             currentQty -= t.qty;
             if (currentQty <= 0) {
               currentQty = 0;

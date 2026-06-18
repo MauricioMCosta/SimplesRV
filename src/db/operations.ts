@@ -31,6 +31,84 @@ export async function forceRecalculate(tickers?: string[]) {
   });
 }
 
+export function computeRightsAvgPriceMem(transactions: Transaction[], subTicker: string, date: string): number {
+  const filteredSorted = transactions
+    .filter(t => t.ticker.toUpperCase() === subTicker.toUpperCase() && t.date <= date)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  let qty = 0;
+  let avgPrice = 0;
+
+  for (const t of filteredSorted) {
+    if (t.type === 'BUY') {
+      const prevTotal = qty * avgPrice;
+      const currentTotal = t.qty * t.price;
+      qty += t.qty;
+      avgPrice = qty > 0 ? (prevTotal + currentTotal) / qty : 0;
+    } else if (t.type === 'SELL' || (t.type as string) === 'EXERCISE') {
+      qty -= t.qty;
+      if (qty <= 0) {
+        qty = 0;
+        avgPrice = 0;
+      }
+    } else if (t.type === 'SPLIT') {
+       if (t.qty > 0) {
+        qty *= t.qty;
+        avgPrice /= t.qty;
+       }
+    } else if (t.type === 'INPLIT') {
+       if (t.qty > 0 && qty > 0) {
+        qty = Math.floor(qty / t.qty);
+        avgPrice = avgPrice * t.qty;
+       }
+    }
+  }
+
+  return avgPrice;
+}
+
+async function getRightsAvgPrice(subTicker: string, date: string): Promise<number> {
+  const txs = await db.transactions
+    .where('ticker')
+    .equals(subTicker.toUpperCase())
+    .toArray();
+  
+  // Sort them by date up to the given date
+  const filteredSorted = txs
+    .filter(t => t.date <= date)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  let qty = 0;
+  let avgPrice = 0;
+
+  for (const t of filteredSorted) {
+    if (t.type === 'BUY') {
+      const prevTotal = qty * avgPrice;
+      const currentTotal = t.qty * t.price;
+      qty += t.qty;
+      avgPrice = qty > 0 ? (prevTotal + currentTotal) / qty : 0;
+    } else if (t.type === 'SELL') {
+      qty -= t.qty;
+      if (qty <= 0) {
+        qty = 0;
+        avgPrice = 0;
+      }
+    } else if (t.type === 'SPLIT') {
+       if (t.qty > 0) {
+        qty *= t.qty;
+        avgPrice /= t.qty;
+       }
+    } else if (t.type === 'INPLIT') {
+       if (t.qty > 0 && qty > 0) {
+        qty = Math.floor(qty / t.qty);
+        avgPrice = avgPrice * t.qty;
+       }
+    }
+  }
+
+  return avgPrice;
+}
+
 export async function _consolidateTrades(generateSells: boolean = true) {
   const pending = await db.transactions
     .filter(t => t.is_pending ?? false)
@@ -38,8 +116,26 @@ export async function _consolidateTrades(generateSells: boolean = true) {
 
   if (pending.length === 0) return;
 
-  // Identify all unique tickers that have pending transactions
-  const pendingTickers = Array.from(new Set(pending.map(t => t.ticker.toUpperCase())));
+  // Identify all unique tickers that have pending transactions, expanding graph of subscrissao peers
+  const pendingSet = new Set(pending.map(t => t.ticker.toUpperCase()));
+  const allTxs = await db.transactions.toArray();
+  let expanded = true;
+  while (expanded) {
+    expanded = false;
+    for (const tx of allTxs) {
+      const tUpper = tx.ticker.toUpperCase();
+      const sUpper = tx.sub_ticker?.toUpperCase();
+      if (pendingSet.has(tUpper) && sUpper && !pendingSet.has(sUpper)) {
+        pendingSet.add(sUpper);
+        expanded = true;
+      }
+      if (sUpper && pendingSet.has(sUpper) && !pendingSet.has(tUpper)) {
+        pendingSet.add(tUpper);
+        expanded = true;
+      }
+    }
+  }
+  const pendingTickers = Array.from(pendingSet);
 
   for (const ticker of pendingTickers) {
     // Reset consolidated state for this ticker
@@ -48,14 +144,54 @@ export async function _consolidateTrades(generateSells: boolean = true) {
       await db.sells.where('ticker').equals(ticker).delete();
     }
 
-    // Process ALL transactions for this ticker to ensure full history is considered
+    // Process ALL transactions for this ticker, plus any virtual exercises where this was a sub_ticker
     const tickerTxs = await db.transactions
       .where('ticker')
       .equals(ticker)
       .sortBy('date');
 
-    const byDate: Record<string, Transaction[]> = {};
-    tickerTxs.forEach(t => {
+    const subExercises = allTxs.filter(tx => tx.acquisition_type === 'SUB' && tx.sub_ticker?.toUpperCase() === ticker);
+
+    interface TimelineEvent {
+      id?: number;
+      ticker: string;
+      date: string;
+      type: 'BUY' | 'SELL' | 'DIV' | 'JCP' | 'REND' | 'SPLIT' | 'INPLIT' | 'EXERCISE';
+      qty: number;
+      price: number;
+      acquisition_type?: 'REG' | 'BON' | 'SUB';
+      sub_ticker?: string;
+      is_pending?: boolean;
+    }
+
+    const timeline: TimelineEvent[] = [
+      ...tickerTxs.map(t => ({
+        id: t.id,
+        ticker: t.ticker,
+        date: t.date,
+        type: t.type as any,
+        qty: t.qty,
+        price: t.price,
+        acquisition_type: t.acquisition_type,
+        sub_ticker: t.sub_ticker,
+        is_pending: t.is_pending
+      })),
+      ...subExercises.map(tx => ({
+        id: tx.id,
+        ticker: ticker,
+        date: tx.date,
+        type: 'EXERCISE' as const,
+        qty: tx.qty,
+        price: 0,
+        is_pending: tx.is_pending
+      }))
+    ];
+
+    // Sort timeline chronologically
+    timeline.sort((a, b) => a.date.localeCompare(b.date));
+
+    const byDate: Record<string, TimelineEvent[]> = {};
+    timeline.forEach(t => {
       if (!byDate[t.date]) byDate[t.date] = [];
       byDate[t.date].push(t);
     });
@@ -70,14 +206,23 @@ export async function _consolidateTrades(generateSells: boolean = true) {
       let buyTotal = 0;
       let sellQty = 0;
       let sellTotal = 0;
+      let exerciseQty = 0;
 
       for (const t of dayTxs) {
         if (t.type === 'BUY') {
+          let priceWithRights = t.price;
+          // Subscrição adjusts purchase price with the cost basis of the subscription rights
+          if (t.acquisition_type === 'SUB' && t.sub_ticker) {
+            const rightsCost = await getRightsAvgPrice(t.sub_ticker, t.date);
+            priceWithRights += rightsCost;
+          }
           buyQty += t.qty;
-          buyTotal += t.qty * t.price;
+          buyTotal += t.qty * priceWithRights;
         } else if (t.type === 'SELL') {
           sellQty += t.qty;
           sellTotal += t.qty * t.price;
+        } else if (t.type === 'EXERCISE') {
+          exerciseQty += t.qty;
         } else if (t.type === 'DIV' || t.type === 'JCP' || t.type === 'REND') {
           if (generateSells) {
             await db.sells.add({
@@ -107,7 +252,7 @@ export async function _consolidateTrades(generateSells: boolean = true) {
           sellPrice: avgSellPrice,
           profit,
           type: 'DAY'
-        });
+         });
       }
 
       const netBuy = buyQty - dayTradeQty;
@@ -134,6 +279,14 @@ export async function _consolidateTrades(generateSells: boolean = true) {
           });
         }
         pos.qty -= netSell;
+        if (pos.qty <= 0) {
+          pos.qty = 0;
+          pos.avgPrice = 0;
+        }
+      }
+
+      if (exerciseQty > 0) {
+        pos.qty -= exerciseQty;
         if (pos.qty <= 0) {
           pos.qty = 0;
           pos.avgPrice = 0;
@@ -173,7 +326,7 @@ export async function _consolidateTrades(generateSells: boolean = true) {
 
       if (generateSells) {
         for (const t of dayTxs) {
-          if (t.id) {
+          if (t.type !== 'EXERCISE' && t.id) {
             await db.transactions.update(t.id, { is_pending: false });
           }
         }
@@ -237,6 +390,8 @@ export async function addTransaction(t: Transaction) {
       });
     }
 
+    const sub_ticker = t.sub_ticker ? t.sub_ticker.toUpperCase().trim() : undefined;
+
     await db.transactions.add({
       ticker,
       date: t.date,
@@ -244,7 +399,9 @@ export async function addTransaction(t: Transaction) {
       qty: Number(t.qty),
       price: Number(t.price),
       created_at: new Date().toISOString(),
-      is_pending: true
+      is_pending: true,
+      acquisition_type: t.acquisition_type || 'REG',
+      sub_ticker
     });
     
     const sameDateTxs = await db.transactions
@@ -255,6 +412,15 @@ export async function addTransaction(t: Transaction) {
     for (const tx of sameDateTxs) {
       if (tx.id) await db.transactions.update(tx.id, { is_pending: true });
     }
+
+    // Sync sub_ticker to be pending too if it was specified
+    if (sub_ticker) {
+      const subTxs = await db.transactions.where('ticker').equals(sub_ticker).toArray();
+      for (const tx of subTxs) {
+        if (tx.id) await db.transactions.update(tx.id, { is_pending: true });
+      }
+    }
+
     await db.metadata.put({ key: 'last_updated_at', value: new Date().toISOString() });
     await _consolidateTrades(false);
   });
@@ -267,12 +433,17 @@ export async function updateTransaction(id: number, t: Partial<Transaction>) {
 
     const oldTicker = existing.ticker.toUpperCase();
     const newTicker = t.ticker ? t.ticker.toUpperCase() : oldTicker;
+    const oldSubTicker = existing.sub_ticker ? existing.sub_ticker.toUpperCase() : undefined;
+    const newSubTicker = t.sub_ticker ? t.sub_ticker.toUpperCase().trim() : undefined;
 
-    await db.transactions.update(id, {
+    const updatedData: Partial<Transaction> = {
       ...t,
       ticker: newTicker,
+      sub_ticker: newSubTicker,
       is_pending: true
-    });
+    };
+
+    await db.transactions.update(id, updatedData);
 
     const tickersToConsolidate = new Set([oldTicker, newTicker]);
 
@@ -288,17 +459,30 @@ export async function updateTransaction(id: number, t: Partial<Transaction>) {
       }
     }
 
+    // Sync sub_tickers
+    const subTickersToPending = new Set<string>();
+    if (oldSubTicker) subTickersToPending.add(oldSubTicker);
+    if (newSubTicker) subTickersToPending.add(newSubTicker);
+
+    for (const subT of subTickersToPending) {
+      const txs = await db.transactions.where('ticker').equals(subT).toArray();
+      for (const tx of txs) {
+        if (tx.id) await db.transactions.update(tx.id, { is_pending: true });
+      }
+    }
+
     await db.metadata.put({ key: 'last_updated_at', value: new Date().toISOString() });
     await _consolidateTrades(false);
   });
 }
 
 export async function deleteTransaction(id: number) {
-  await db.transaction('rw', db.transactions, db.metadata, db.positions, db.sells, async () => {
+  await db.transaction('rw', [db.transactions, db.metadata, db.positions, db.sells], async () => {
     const tx = await db.transactions.get(id);
     if (!tx) return;
 
     const ticker = tx.ticker.toUpperCase();
+    const sub_ticker = tx.sub_ticker ? tx.sub_ticker.toUpperCase() : undefined;
     await db.transactions.delete(id);
 
     const otherTxs = await db.transactions.where('ticker').equals(ticker).toArray();
@@ -316,6 +500,13 @@ export async function deleteTransaction(id: number) {
       const last = otherTxs[otherTxs.length - 1];
       if (last && last.id) {
         await db.transactions.update(last.id, { is_pending: true });
+      }
+    }
+
+    if (sub_ticker) {
+      const subTxs = await db.transactions.where('ticker').equals(sub_ticker).toArray();
+      for (const t of subTxs) {
+        if (t.id) await db.transactions.update(t.id, { is_pending: true });
       }
     }
 

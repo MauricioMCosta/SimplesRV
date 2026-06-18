@@ -74,6 +74,7 @@ Follow the strict directory structure defined in `AGENTS.md` Section 2 (Workspac
 - **Dead Code:** Remove unused imports, variables, and functions before committing.
 - **Formatting:** Format code consistently (Prettier recommended). Use ESLint if available.
 - **No Console Logs:** Remove debug `console.log()` calls from production code. Use proper error handling.
+- **Documentation is Part of Done:** Every code change (new, modified, or deleted functionality, UI refactors, flow changes) **requires** corresponding documentation updates in `src/data/manualContent.ts`. See AGENTS.md Section 5 for detailed documentation requirements and Section 7 for the documentation sync protocol.
 
 ## Development Workflow
 - **Start Dev Server:** `npm run dev` (runs Vite on port 3000)
@@ -81,6 +82,7 @@ Follow the strict directory structure defined in `AGENTS.md` Section 2 (Workspac
 - **Type Check:** `npm run lint` (runs TypeScript compiler check)
 - **Preview:** `npm run preview` (preview built dist locally)
 - **Clean:** `npm run clean` (remove dist/)
+- **Documentation Updates:** Whenever you create, modify, or delete features; refactor UI/flows; or change business logic, **update `src/data/manualContent.ts`** with corresponding changes. Documentation updates must be committed together with code changes. Use the documentation sync checklist in AGENTS.md Section 7. Changes are automatically reflected in the Manual route (`/Manual`).
 
 ## Common Patterns & Best Practices
 - **Form Handling:** Use `useState` for form data, validate on submit, display errors via `SRVGlobalDialogContext`.

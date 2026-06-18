@@ -59,10 +59,36 @@ To ensure maximum code cleanliness, predictability, and safety, strictly enforce
 * **Strict Type Safety:** Never bypass the compiler using any. Every object, payload, and function argument must have an explicit interface, type, or record signature defined.
 * **Zero Dead Code:** Do not leave unused imports, variables, arguments, classes, functions, or objects in the codebase. Every line of code must serve an active structural purpose.
 * **Immutability First:** Enforce predictable data states by treating state arrays and properties as immutable. Use pure functional flows that yield new outputs instead of mutating active references.
+* **Documentation is Code:** Whenever functionality is created, changed, deleted, or UI/flow refactors occur, the corresponding documentation in `/manual/` must be updated in the same commit/PR. Documentation is not optional—it is part of the definition of done. See next section for documentation requirements.
 
 ---
 
-## 5. Project-Specific Architecture
+## 5. Documentation Requirements
+
+### Mandatory Documentation Updates
+**Every code change must have a corresponding documentation update.** The following trigger documentation updates:
+- **New Features:** Add feature description, usage examples, and relevant screenshots to `src/data/manualContent.ts`.
+- **Changed Behavior:** Update affected sections in `src/data/manualContent.ts` with new behavior, parameters, or workflows.
+- **Deleted Features:** Remove or archive documentation for deleted functionality.
+- **UI/Flow Refactors:** Update user-facing documentation with new workflows, navigation paths, or interaction patterns.
+- **Database Schema Changes:** Document new/modified tables, fields, and data relationships.
+- **Business Logic Changes:** Update report generation, calculation methods, or data validation logic documentation.
+
+### Documentation Structure
+- **Path:** `src/data/manualContent.ts` – Centralized documentation source (embedded for browser-only app)
+- **Format:** TypeScript object with markdown strings organized by feature section
+- **Organization:** Each `manualSections` key represents one feature area (dashboard, assets, calculators, reports, etc.)
+- **Integration:** Documentation is rendered by the `/Manual` route (via `src/pages/Manual.tsx`). Changes to `manualContent.ts` are reflected immediately.
+- **Audience:** End users first, developers second. Explain *what* and *why*, not just *how*.
+
+### Validation
+- Before marking work complete, verify documentation is updated
+- If no documentation exists for a feature area, create it
+- Stale or outdated documentation is a code quality issue—fix immediately upon discovery
+
+---
+
+## 6. Project-Specific Architecture
 
 ### Data Layer & Dexie Integration
 * **Database Schema:** The project uses Dexie (IndexedDB abstraction) for local-first data storage with `AppDatabase` class managing tables (transactions, positions, sells, assets, custodians, metadata).
@@ -90,3 +116,26 @@ To ensure maximum code cleanliness, predictability, and safety, strictly enforce
   2. `DataTableContext` – Table UI state (sorting, filtering, pagination).
   3. `SRVGlobalDialogContext` – Modal/dialog interaction state and alerts.
 * **Custom Providers:** Always provide contexts at the app root via provider composition.
+
+---
+
+## 7. Code Change & Documentation Sync Protocol
+
+### When Documentation Updates Are Required
+Document **any** code change that affects user experience or system behavior:
+- New pages, features, or components visible to users
+- Changes to workflows, forms, or navigation
+- Database schema modifications
+- Report formats or calculation logic changes
+- Calculator or utility behavior changes
+- Settings or configuration options added/modified/removed
+
+### Documentation Checklist
+Before committing code changes:
+- [ ] Determine which `/manual/` file(s) are affected
+- [ ] Create new `.md` file if documenting a new feature area
+- [ ] Update affected sections with current behavior, workflows, and examples
+- [ ] Include screenshots or workflow diagrams if UI changed
+- [ ] Remove outdated references; update related cross-links
+- [ ] Verify documentation is accurate against the final implementation
+- [ ] Commit documentation updates in the same PR/commit as code changes

@@ -1,26 +1,28 @@
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 import { cn } from '@/src/lib/utils';
 import { Trash2, Edit2, ChevronLeft, ChevronRight, Search, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { DataTableContext } from '../context/DataTableContext';
 import { DashboardTableProps } from './DashboardTable.types';
+import { filterAST } from '../lib/filterParser';
 
 export function DashboardTable({ heading, data = [], columns, onEdit, onDelete, onColumnRender }: DashboardTableProps) {
   const context = useContext(DataTableContext);
   const columnKeys = Object.keys(columns);
 
-  const handleFilterChange = (key: string, value: string) => {
-    if (context) {
-      context.setFilter(`data.${key}`, value);
-    }
-  };
-
   // If context exists, use its displayData. Otherwise fall back to prop data.
   const sourceData = context ? context.displayData : data;
 
+  const isAstActive = useMemo(() => {
+    if (!context || !context.search || !context.search.trim()) return false;
+    const ast = filterAST(context.search);
+    return ast && ast.type !== 'EMPTY';
+  }, [context?.search]);
+
   return (
     <div className="card !p-0 overflow-hidden">
-      <header className="p-5 border-b border-brand-line flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white">
-        <div className="flex-1">
+      <header className="p-5 border-b border-brand-line flex flex-col gap-4 bg-white">
+        {/* Line 1: Title and Access/Action Buttons */}
+        <div className="w-full flex justify-between items-center">
           {typeof heading === 'string' ? (
             <h3 className="text-sm font-bold text-brand-ink uppercase tracking-wider">{heading}</h3>
           ) : (
@@ -28,17 +30,34 @@ export function DashboardTable({ heading, data = [], columns, onEdit, onDelete, 
           )}
         </div>
 
+        {/* Line 2: Single Consolidated Smart Search & Filter */}
         {context && (
-          <div className="flex items-center gap-4 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+          <div className="w-full">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
               <input
                 type="text"
-                placeholder="Filtrar..."
-                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-brand-line rounded text-xs outline-none focus:border-brand-accent transition-colors"
+                placeholder="Busca rápida ou filtro avançado (ex: ticker = 'KLBN11' AND :tipo: = 'BUY')..."
+                className="w-full pl-9 pr-32 py-2 bg-slate-50 border border-brand-line rounded text-xs font-mono outline-none focus:bg-white focus:border-brand-accent transition-all"
                 value={context.search}
                 onChange={(e) => context.setSearch(e.target.value)}
+                title="Sintaxe de Filtro Avançado: campo = 'valor' AND (campo2 >= numero OR :nome da coluna: ~ 'padrao*')"
               />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none select-none">
+                {isAstActive ? (
+                  <span className="text-[9px] font-mono font-extrabold text-blue-600 bg-blue-50 border border-blue-200/60 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                    Filtro AST Ativo
+                  </span>
+                ) : context.search.trim() ? (
+                  <span className="text-[9px] font-mono font-semibold text-slate-500 bg-slate-100 border border-slate-200/60 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                    Busca Rápida
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-mono text-slate-300">
+                    AST / Texto
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -56,7 +75,7 @@ export function DashboardTable({ heading, data = [], columns, onEdit, onDelete, 
                   <th 
                     key={key} 
                     className={cn(
-                      align === 'right' ? 'text-right align-top' : 'text-left align-top'
+                      align === 'right' ? 'text-right align-middle py-3' : 'text-left align-middle py-3'
                     )}
                   >
                     <div className={cn("flex flex-col gap-1.5", align === 'right' && "items-end")}>
@@ -77,35 +96,18 @@ export function DashboardTable({ heading, data = [], columns, onEdit, onDelete, 
                             }
                           >
                             {context.sortBy === `data.${key}` ? (
-                              context.sortOrder === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+                               context.sortOrder === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
                             ) : (
                               <ArrowUpDown size={12} className="opacity-50" />
                             )}
                           </button>
                         )}
                       </div>
-                      {typeof col !== 'string' && col.filterable && col.filterOptions && (
-                        <select
-                          className="bg-white border border-brand-line rounded text-[10px] font-mono outline-none px-1 py-1 text-slate-600 font-normal max-w-[120px]"
-                          value={(context?.filters[`data.${key}`]) || ''}
-                          onChange={(e) => handleFilterChange(key, e.target.value)}
-                          onClick={(e) => e.stopPropagation()} // Prevent sort trigger
-                        >
-                          <option value="">Todos</option>
-                          {col.filterOptions.map((opt: any) => {
-                            const optionLabel = typeof opt === 'string' ? opt : opt.label;
-                            const optionValue = typeof opt === 'string' ? opt : opt.value;
-                            return (
-                              <option key={optionValue} value={optionValue}>{optionLabel}</option>
-                            );
-                          })}
-                        </select>
-                      )}
                     </div>
                   </th>
                 );
               })}
-              {(onEdit || onDelete) && <th className="text-right align-top">Ações</th>}
+              {(onEdit || onDelete) && <th className="text-right align-middle py-3">Ações</th>}
             </tr>
           </thead>
           <tbody>

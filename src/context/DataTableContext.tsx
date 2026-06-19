@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useMemo, useEffect } from "react";
 import { SortOrder, DataTableState, DataTableAction, DataTableContextType, DataTableProviderProps } from "./DataTableContext.types";
+import { filterAST, evaluateAST } from "../lib/filterParser";
 
 function dataTableReducer(state: DataTableState, action: DataTableAction) : DataTableState {
   switch(action.type) {
@@ -18,6 +19,8 @@ function dataTableReducer(state: DataTableState, action: DataTableAction) : Data
       if (!action.payload.value) delete newFilters[action.payload.key];
       return { ...state, filters: newFilters, page: 1 };
     }
+    case 'SET_QUERY_FILTER':
+      return { ...state, queryFilter: action.payload, page: 1 };
     case 'SET_SORT': {
       const field = action.payload.field;
       let newSortBy: string | null = field;
@@ -47,13 +50,14 @@ const getNestedValue = (obj: any, path: string) => {
   return path.split('.').reduce((acc, part) => acc && acc[part], obj);
 };
 
-export function DataTableProvider({ children, initialData = [], initialLimit = 10 }: DataTableProviderProps) {
+export function DataTableProvider({ children, initialData = [], initialLimit = 10, columns }: DataTableProviderProps) {
   const [state, dispatch] = useReducer(dataTableReducer, {
     data: initialData,
     page: 1,
     limit: initialLimit,
     search: '',
     filters: {},
+    queryFilter: '',
     sortBy: null,
     sortOrder: 'asc'
   });
@@ -85,19 +89,24 @@ export function DataTableProvider({ children, initialData = [], initialLimit = 1
       });
     }
 
-    // Apply search
-    if (state.search) {
-      const term = state.search.toLowerCase();
-      const searchIn = (item: any): boolean => {
-        if (item === null || item === undefined) return false;
-        if (typeof item !== 'object') return String(item).toLowerCase().includes(term);
-        return Object.values(item).some(val => searchIn(val));
-      };
-      result = result.filter(searchIn);
+    // Apply search or AST filter (AST takes priority if valid, otherwise fallback to quick search)
+    if (state.search && state.search.trim()) {
+      const ast = filterAST(state.search);
+      if (ast && ast.type !== 'EMPTY') {
+        result = result.filter(item => evaluateAST(ast, item, columns));
+      } else {
+        const term = state.search.toLowerCase();
+        const searchIn = (item: any): boolean => {
+          if (item === null || item === undefined) return false;
+          if (typeof item !== 'object') return String(item).toLowerCase().includes(term);
+          return Object.values(item).some(val => searchIn(val));
+        };
+        result = result.filter(searchIn);
+      }
     }
 
     return result;
-  }, [state.data, state.search, state.filters]);
+  }, [state.data, state.search, state.filters, columns]);
 
   const sortedData = useMemo(() => {
     if (!state.sortBy) return filteredData;
@@ -132,6 +141,7 @@ export function DataTableProvider({ children, initialData = [], initialLimit = 1
     totalPages,
     setSearch: (payload) => dispatch({ type: 'SET_SEARCH', payload }),
     setFilter: (key, value) => dispatch({ type: 'SET_FILTER', payload: { key, value } }),
+    setQueryFilter: (payload) => dispatch({ type: 'SET_QUERY_FILTER', payload }),
     setSort: (field, order) => dispatch({ type: 'SET_SORT', payload: { field, order } }),
     setPage: (payload) => dispatch({ type: 'SET_PAGE', payload }),
     setLimit: (payload) => dispatch({ type: 'SET_LIMIT', payload }),

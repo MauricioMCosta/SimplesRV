@@ -418,7 +418,7 @@ export default function Transactions() {
         </form>
       </Modal>
 
-      <DataTableWrapper initialData={tableData} initialLimit={15}>
+      <DataTableWrapper initialData={tableData} initialLimit={15} columns={tableColumns}>
         <DashboardTable 
           heading={tableHeading}
           columns={tableColumns}

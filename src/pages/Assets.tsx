@@ -305,7 +305,7 @@ export default function Assets() {
         </form>
       </Modal>
 
-      <DataTableWrapper initialData={tableData} initialLimit={12}>
+      <DataTableWrapper initialData={tableData} initialLimit={12} columns={tableColumns}>
         <DashboardTable 
           heading={tableHeading}
           columns={tableColumns}

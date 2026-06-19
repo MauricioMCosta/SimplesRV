@@ -99,7 +99,27 @@ O $implesRV implementa o método contábil regulamentar de saída do estoque par
 
 - **Offline & Serverless:** Nenhum registro é enviado para nuvem. Seus dados cadastrais, financeiros e notas fiscais residem única e exclusivamente no banco de dados local **IndexedDB** do navegador de internet de seu computador, isolado via sandbox.
 - **Novo CNPJ Alfanumérico:** O algoritmo interno de identificação fiduciária foi atualizado para suportar o novo padrão alfanumérico da Receita Federal Brasileira (Ex: \`12.ABC.345/0001-99\`), prevenindo problemas de preenchimento ou travamento cadastral de fontes pagadoras ou brokers internacionais.
-- **Prática de Segurança de Dados:** Faça sempre a exportação regular das informações em arquivos JSON integrados (na aba Configurações) para proteção em caso de exclusão de caches ou uso de dispositivos adicionais simultâneos.`
+- **Prática de Segurança de Dados:** Faça sempre a exportação regular das informações em arquivos JSON integrados (na aba Configurações) para proteção em caso de exclusão de caches ou uso de dispositivos adicionais simultâneos.`,
+
+    advancedFiltering: `## 10. Filtro Inteligente e Unificado por Expressões (AST Engine)
+
+O sistema conta com uma barra de pesquisa inteligente e unificada que combina buscas textuais simples (Busca Rápida) e consultas expressivas em Árvore de Sintaxe Abstrata (AST) de forma nativa e instantânea:
+
+- **Seleção Dinâmica Automatizada:**
+  - Se você digitar termos normais (Ex: \`VIS\`), o sistema executa automaticamente uma **Busca Rápida (Fuzzy)** em todas as propriedades visíveis.
+  - Se você digitar uma expressão lógica/comparativa estruturada, o sistema ativa automaticamente o **Filtro AST** (sendo acompanhado por uma etiqueta indicativa na barra).
+- **Operadores de Comparação em Expressões:**
+  - \`=\` para igualdade de valores (Ex: \`ticker = 'KLBN11'\`).
+  - \`!=\` para diferença de valores (Ex: \`type != 'SELL'\`).
+  - \`>\`, \`<\`, \`>=\`, \`<=\` para filtros numéricos ou cronológicos (Ex: \`qty >= 100\`).
+  - \`~\` para buscas baseadas em padrões LIKE com suporte ao caractere curinga \`*\` (Ex: \`ticker ~ 'KLBN*'\` para encontrar todos os tickers que começam com KLBN).
+- **Operador de Mapeamento de Coluna (\`:\`):**
+  - Permite filtrar diretamente pelo nome exibido/legível da coluna na tabela ao utilizar a sintaxe \`:Nome da Coluna:\` (Ex: \`:tipo: = 'BUY' OR :tipo: = 'SELL'\`, ou \`:Preço Médio: > 10.50\`). Isso facilita pesquisas sem precisar conhecer a chave exata da propriedade de dados subjacente.
+- **Operadores Lógicos Complexos:**
+  - \`AND\` para conjunção de regras obrigatórias.
+  - \`OR\` para disjunção de condições alternativas.
+  - Parênteses \`(\` e \`)\` para precedência explícita e agrupamento lógico (Ex: \`ticker = 'KLBN11' AND (:tipo: = 'BUY' OR :tipo: = 'SELL')\`).
+- **Resolução Automática:** Os campos de dados como \`ticker\`, \`type\`, \`price\` e \`qty\` são automaticamente mapeados e resolvidos pelo compilador para simplificar a digitação do investidor, oferecendo respostas imediatas em todas as tabelas paginadas do sistema.`
 };
 
 /**

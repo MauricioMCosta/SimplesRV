@@ -8,6 +8,7 @@ export interface DataTableState {
   limit: number;
   search: string;
   filters: Record<string, string>;
+  queryFilter: string;
   sortBy: string | null;
   sortOrder: SortOrder;
 }
@@ -19,6 +20,7 @@ export type DataTableAction =
   | { type: 'SET_LIMIT', payload: number }
   | { type: 'SET_SEARCH', payload: string }
   | { type: 'SET_FILTER', payload: { key: string; value: string } }
+  | { type: 'SET_QUERY_FILTER', payload: string }
   | { type: 'SET_SORT', payload: { field: string; order?: SortOrder } }
   | { type: 'NEXT_PAGE'}
   | { type: 'PREV_PAGE'};
@@ -29,6 +31,7 @@ export interface DataTableContextType extends DataTableState {
   totalPages: number;
   setSearch: (term: string) => void;
   setFilter: (key: string, value: string) => void;
+  setQueryFilter: (expr: string) => void;
   setSort: (field: string, order?: SortOrder) => void;
   setPage: (page: number) => void;
   setLimit: (limit: number) => void;
@@ -40,4 +43,5 @@ export interface DataTableProviderProps {
   children: ReactNode;
   initialData?: any[];
   initialLimit?: number;
+  columns?: any;
 }

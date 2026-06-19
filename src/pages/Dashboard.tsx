@@ -96,7 +96,7 @@ export default function Dashboard() {
           footer={`Total: R$ ${positions.reduce((acc, p) => acc + (p.qty * p.avgPrice), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
         />
       </div>
-      <DataTableWrapper initialData={tableData}>
+      <DataTableWrapper initialData={tableData} columns={tableColumns}>
       <DashboardTable 
         heading="Posição das ações"
         columns={tableColumns}

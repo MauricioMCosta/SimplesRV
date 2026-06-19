@@ -5,11 +5,12 @@ interface DataTableWrapperProps {
   children: ReactNode;
   initialData: any[];
   initialLimit?: number;
+  columns?: any;
 }
 
-export const DataTableWrapper: React.FC<DataTableWrapperProps> = ({ children, initialData, initialLimit }) => {
+export const DataTableWrapper: React.FC<DataTableWrapperProps> = ({ children, initialData, initialLimit, columns }) => {
   return (
-    <DataTableProvider initialData={initialData} initialLimit={initialLimit}>
+    <DataTableProvider initialData={initialData} initialLimit={initialLimit} columns={columns}>
       {children}
     </DataTableProvider>
   );

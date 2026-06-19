@@ -37,6 +37,12 @@ export function TransferCalculator({
 
   const [copied, setCopied] = useState(false);
 
+  // Memoized current position in destination asset
+  const destPosition = useMemo(() => {
+    if (!transDestTicker) return null;
+    return positions.find(p => p.ticker === transDestTicker.toUpperCase());
+  }, [transDestTicker, positions]);
+
   // Helper: Find the most recent DIV/JCP/REND payout for a ticker in transaction history
   const getMostRecentPayout = (ticker: string): number => {
     if (!transactions) return 0;
@@ -130,40 +136,92 @@ Preencha as informações do **Ativo de Origem** e do **Ativo de Destino** acima
       ? '🟢 RECOMENDADA (Vantajosa sob a ótica de proventos periódicos)' 
       : '🔴 NÃO RECOMENDADA (Desvantajosa sob a ótica de proventos periódicos)';
 
+    const destQty = destPosition ? destPosition.qty : 0;
+    const destAvgPrice = destPosition ? destPosition.avgPrice : 0;
+    const destFinalQty = destQty + qB;
+    const destCurrentTotal = destQty * destAvgPrice;
+    const destAddedTotal = qB * dPrice;
+    const destFinalTotal = destCurrentTotal + destAddedTotal;
+    const destNewAvgPrice = destFinalQty > 0 ? destFinalTotal / destFinalQty : 0;
+    const destPriceDiff = destNewAvgPrice - destAvgPrice;
+    const destPriceDiffPercent = destAvgPrice > 0 ? (destPriceDiff / destAvgPrice) * 100 : 0;
+
+    const destPrevIncome = destQty * dPayout;
+    const destAddedIncome = qB * dPayout;
+    const destFinalIncome = destFinalQty * dPayout;
+
     let pnlDetailsBlock = '';
-    if (oAvg > 0) {
-      const pnlColor = isLoss ? '🔴 Prejuízo' : '🟢 Lucro';
-      const recoveryText = (isLoss && incomeDiff > 0) 
-        ? `\n- **Tempo para Recuperação (Payback):** Serão necessários aproximadamente **${Math.ceil(Math.abs(profitLoss) / incomeDiff)} períodos/meses** de proventos incrementais de **${transDestTicker}** para amortizar e recuperar integralmente este prejuízo realizado.` 
-        : '';
+    if (oAvg > 0 || destPosition) {
+      pnlDetailsBlock = `### 💼 Análise Patrimonial e Transição de Preço Médio
 
-      pnlDetailsBlock = `
-### 💼 Análise Patrimonial e Preço Médio
+Para garantir a higienização fiduciária da sua carteira, analisamos a transição do custo médio e do patrimônio nos dois polos da transação:
 
-O ativo de origem **${transOriginTicker}** possui uma posição histórica de custo médio:
+`;
 
-- **Preço Médio de Aquisição:** R$ ${oAvg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      if (oAvg > 0) {
+        const pnlColor = isLoss ? '🔴 Prejuízo' : '🟢 Lucro';
+        const recoveryText = (isLoss && incomeDiff > 0) 
+          ? `\n- **Tempo para Recuperação (Payback):** Serão necessários aproximadamente **${Math.ceil(Math.abs(profitLoss) / incomeDiff)} períodos/meses** de proventos incrementais de **${transDestTicker}** para amortizar e recuperar integralmente este prejuízo realizado.` 
+          : '';
+
+        pnlDetailsBlock += `#### 🔴 Ativo de Origem: ${transOriginTicker}
+
+O desinvestimento integral da sua posição atual de **${oQty.toLocaleString('pt-BR')} un** de **${transOriginTicker}** consolida o seguinte cenário patrimonial:
+- **Preço Médio de Aquisição Histórico:** R$ ${oAvg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 - **Custo Total de Aquisição:** R$ ${costBasis.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-- **Valor Bruto Estimado de Venda:** R$ ${salesCapital.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-- **Resultado da Venda (P&L):** **${pnlColor} de R$ ${profitLoss.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${pnlPercent.toFixed(2)}%)**
-${isLoss ? `
-> ⚠️ **Alerta Fiscal e Patrimonial (Prejuízo Realizado):** Ao vender abaixo do preço médio, você estará **realizando uma perda definitiva de capital** de R$ ${Math.abs(profitLoss).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} no seu patrimônio ativo.
-> 
-> No entanto, sob a ótica da Receita Federal do Brasil, esse prejuízo realizado poderá ser catalogado em seus controles fiscais para **compensação tributária futura** com ganhos auferidos sob a mesma modalidade de ativo (ações com ações, FIIs com FIIs).${recoveryText}` 
-: isGain ? `
-> 🎉 **Ganho Patrimonial:** Esta venda geraria um lucro patrimonial real de **R$ ${profitLoss.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** (+${pnlPercent.toFixed(2)}% sobre o custo original de aquisição). Considere a tributação sobre Ganho de Capital aplicável.` 
-: ''}`;
+- **Valor Desinvestido Líquido (Base Venda):** R$ ${salesCapital.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+- **Resultado Contábil da Venda (P&L):** **${pnlColor} de R$ ${profitLoss.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${pnlPercent.toFixed(2)}%)**
+
+${isLoss ? `> ⚠️ **Informativo de Compensação Fiscal (Prejuízo Realizado):**
+> Vender ativos com preço de mercado inferior ao seu preço médio gera uma perda líquida definitiva de capital de **R$ ${Math.abs(profitLoss).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** no seu patrimônio ativo.
+> No entanto, conforme a regulamentação tributária da Receita Federal do Brasil, este prejuízo poderá ser escriturado para **compensação tributária futura** contra ganhos líquidos auferidos sob a mesma categoria de ativos de renda variável.${recoveryText}` 
+: isGain ? `> 🎉 **Informativo de Tributação (Lucro Realizado):**
+> Esta operação gera um lucro apurado de **R$ ${profitLoss.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** (+${pnlPercent.toFixed(2)}%).
+> Atente-se às regras de isenção mensais aplicáveis ou à necessidade de recolhimento tributário via emissão de canais autorizados (DARF).` 
+: ''}
+
+`;
+      }
+
+      pnlDetailsBlock += `#### 🟢 Ativo de Destino: ${transDestTicker}
+
+O reinvestimento do capital líquido de **R$ ${salesCapital.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** no ativo de destino causará a seguinte transição na sua custudo-geral:
+- **Quantidade Adquirida Deduzida:** +${qB.toLocaleString('pt-BR')} un a **R$ ${dPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}** cada.
+- **Estruturação de Custo de Equilíbrio (Preço Médio):**
+  ${destPosition ? `
+  - **Quantidade Inicial:** ${destQty.toLocaleString('pt-BR')} un
+  - **Volume Inicial do Capital de Aquisição:** R$ ${destCurrentTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (Preço Médio Anterior: *R$ ${destAvgPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}*)
+  - **Novo Preço Médio Consolidado:** **R$ ${destNewAvgPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**
+  - **Variação Estimada do Preço Médio:** **${destPriceDiff >= 0 ? '+' : ''}R$ ${destPriceDiff.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${destPriceDiff >= 0 ? '+' : ''}${destPriceDiffPercent.toFixed(2)}%)**
+  
+  > ${destPriceDiff < 0 
+    ? `📉 **Redução de Preço Médio (*Pullback Average*):** A operação é altamente benéfica para o seu ponto de equilíbrio de mercado! O seu preço médio anterior foi reduzido de forma orgânica, aproximando a posição geral dos preços atuais praticados.` 
+    : `📈 **Elevação de Preço Médio (*Upside Premium*):** Você estará elevando seu preço de custo médio anterior no ativo de destino. Isso é perfeitamente normal e saudável ao realizar aportes recorrentes de lucros ou fazer novos preços médios ascendentes em ativos sólidos.`
+  }` 
+  : `
+  - **Posição Prévia:** Nenhuma detectada (Primeira compra deste papel).
+  - **Preço Médio Inicial Estabelecido:** **R$ ${destNewAvgPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** (equivalente ao preço de aquisição proposto).
+  `
+}
+- **Montante Alocado Resultante Final:** **R$ ${destFinalTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** (composto por R$ ${destCurrentTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} prévios + R$ ${destAddedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} adicionados via simulação).`;
     }
 
-    return `## 📊 Relatório de Simulação de Realocação: ${transOriginTicker} ➔ ${transDestTicker}
+    return `## 📊 Relatório Multidimensional de Realocação: ${transOriginTicker} ➔ ${transDestTicker}
 
 ---
 
-### Resumo Executivo
+### Resumo Executivo e Veredito
 
 **Veredito:** **${verdictLabel}**
 
-A operação de transferência de toda a posição atual provocará uma variação projetada de **${incomeDiff >= 0 ? '+' : ''}R$ ${incomeDiff.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** no seu provento recorrente por período, o que representa um impacto de **${incomeDiff >= 0 ? '+' : ''}${incomeDiffPercent.toFixed(2)}%** na fluxo de renda passiva periódico induzido por esta parcela de capital.
+A simulação de migração patrimonial integral de **${transOriginTicker}** para **${transDestTicker}** resultará na seguinte modelagem fiduciária:
+
+- **Impacto no Fluxo de Proventos:** Uma variação de **${incomeDiff >= 0 ? 'elevação benéfica de' : 'redução de'} R$ ${Math.abs(incomeDiff).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** no seu fluxo recorrente projetado por período. Isto representa uma alteração de **${incomeDiff >= 0 ? '+' : ''}${incomeDiffPercent.toFixed(2)}%** na sua renda passiva periódica gerada por esta parcela alocada do seu portfólio.
+- **Eficiência de Taxa (Dividend Yield):** Seu yield unitário periódico migrará de **${yieldA.toFixed(2)}%** para **${yieldB.toFixed(2)}%** (${((yieldB - yieldA) >= 0 ? '+' : '')}${(yieldB - yieldA).toFixed(2)}% de diferença de rendimento bruto).
+- **Consolidação na Destinação:** ${destPosition 
+  ? `Como você já possui custódia de **${transDestTicker}** (${destQty.toLocaleString('pt-BR')} un), esta operação aumentará sua participação em **+${qB.toLocaleString('pt-BR')} un** (totalizando **${destFinalQty.toLocaleString('pt-BR')} un** na carteira) e recalculará seu custo médio histórico.`
+  : `Esta operação marcará o início de uma nova posição para você em **${transDestTicker}**, adicionando **${qB.toLocaleString('pt-BR')} un** ao seu inventário ativo.`
+}
 
 ---
 
@@ -177,8 +235,20 @@ A operação de transferência de toda a posição atual provocará uma variaç�
 | **Dividend Yield Periódico** | ${yieldA.toFixed(2)}% | ${yieldB.toFixed(2)}% | ${((yieldB - yieldA) >= 0 ? '+' : '')}${(yieldB - yieldA).toFixed(2)}% |
 | **Renda Passiva Periódica** | **R$ ${incomeA.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** | **R$ ${incomeB.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** | **R$ ${incomeDiff.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${incomeDiff >= 0 ? '+' : ''}${incomeDiffPercent.toFixed(2)}%)** |
 
+#### 🎯 Composição de Custódia Final do Ativo de Destino (${transDestTicker})
+
+| Parâmetro de Posição | Situação Prévia | Incremento (Troca) | Posição Final Consolidada |
+| :--- | :---: | :---: | :---: |
+| **Quantidade em Custódia** | ${destPosition ? `${destQty.toLocaleString('pt-BR')} un` : '0 un (Novo Ativo)'} | +${qB.toLocaleString('pt-BR')} un | **${destFinalQty.toLocaleString('pt-BR')} un** |
+| **Preço Médio Calculado** | ${destPosition ? `R$ ${destAvgPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'} | R$ ${dPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | **R$ ${destNewAvgPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}** |
+| **Montante Financeiro Alocado** | ${destPosition ? `R$ ${destCurrentTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'} | R$ ${destAddedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | **R$ ${destFinalTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}** |
+| **Renda Passiva Periódica** | ${destPosition ? `R$ ${destPrevIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'} | R$ ${destAddedIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | **R$ ${destFinalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}** |
+
 ---
+
 ${pnlDetailsBlock}
+
+---
 
 ### 🔧 Roteiro Operacional de Execução
 
@@ -202,6 +272,7 @@ ${pnlDetailsBlock}
     transDestPrice,
     transDestPayout,
     transferCalcResult,
+    destPosition,
   ]);
 
   const handleCopy = () => {
@@ -319,6 +390,27 @@ ${pnlDetailsBlock}
                 notFoundHint="Ativo não encontrado."
               />
             </div>
+
+            {destPosition && (
+              <div className="mb-4 p-3 bg-indigo-50/50 border border-indigo-100 rounded-lg text-xs space-y-1.5">
+                <div className="text-[10px] uppercase font-bold text-indigo-700 tracking-wider flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                  Posição Custodiada Detectada (Destino)
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-slate-700 font-medium">
+                  <div className="bg-white border border-indigo-50 p-1.5 rounded flex flex-col">
+                    <span className="text-[9px] uppercase font-bold text-slate-400">Quantidade Atual (QTDE)</span>
+                    <span className="text-slate-900 font-bold text-sm">{destPosition.qty.toLocaleString('pt-BR')} un</span>
+                  </div>
+                  <div className="bg-white border border-indigo-50 p-1.5 rounded flex flex-col">
+                    <span className="text-[9px] uppercase font-bold text-slate-400">Preço Médio Atual (PM)</span>
+                    <span className="text-slate-900 font-bold text-sm font-mono text-indigo-600">
+                      R$ {destPosition.avgPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div>

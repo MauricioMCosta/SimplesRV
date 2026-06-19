@@ -73,10 +73,11 @@ Avalia em que estágio o ativo atinge o ponto de autoinvestimento infinito:
 
 Projeta a troca/troca financeira integral de um ativo em carteira (Origem) para outro ativo-fim (Destino):
 
-- **Veredito Inteligente:** Dá parecer fiduciário indicando se a realocação é favorável sob a perspectiva do fluxo de proventos e dividas anuais de médio prazo.
-- **Análise de P&L de Preço Médio:** Confronta o preço médio original com o preço atual de venda da corretora, emitindo alertas estruturados em caso de prejuízos ou lucros patrimoniais.
+- **Detecção de Custódia de Destino:** Busca e exibe de forma reativa a quantidade de cotas e o preço médio histórico caso o ativo de destino selecionado já exista em seu portfólio de investimentos.
+- **Resumo Executivo e Veredito:** Fornece um veredito fiduciário e um sumário executivo detalhando o impacto imediato da realocação no rendimento periódico absoluto e na eficiência percentual de dividendos.
+- **Composição de Custódia Final (Tabela Comparativa):** Projeta matematicamente como a posição de destino ficará consolidada pós-operação, apresentando a quantidade final resultante de cotas, o novo preço médio recalculado e o montante financeiro residual integralizado.
+- **Análise Patrimonial Ampliada:** Contrasta detidamente a transição patrimonial de preço médio de ambos os ativos (origem e destino). Explica a dinâmica de perda ou ganho de capital na liquidação de origem, informativos para fins fiscais de compensação de prejuízos regulada pela Receita Federal, bem como a diluição por redução de preço médio (*pullback average*) ou acúmulo ascendente de preço de custo médio (*upside premium*) no ativo de destino.
 - **Payback de Prejuízo:** Se a venda for feita com prejuízo financeiro definitivo, a calculadora estima o **tempo em meses/períodos** para que os dividendos extras recorrentes do novo ativo amorteçam e cubram de forma orgânica a perda de patrimônio realizada.
-- **Tratamento Fiscal de Prejuízo:** Alerta formal sobre a declaração legal de compensação tributária futura conforme regras vigentes da Receita Federal.
 - **Passo a Passo de Vendas:** Roteiro completo delimitando quantidades operacionais de liquidação da origem, reinvestimento no destino e sobra de caixa ("troco") no caixa da corretora.`,
 
     reports: `## 7. Relatórios (Imposto de Renda)

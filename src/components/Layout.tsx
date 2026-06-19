@@ -169,7 +169,7 @@ export function Layout({ children }: { children: ReactNode }) {
         </main>
         
         <footer className="h-10 bg-white border-t border-brand-line flex items-center px-8 justify-between text-[11px] text-slate-400 shrink-0">
-          <div className="font-mono">v1.3.0-stable</div>
+          <div className="font-mono">v1.4.0-stable</div>
         </footer>
       </div>
     </div>

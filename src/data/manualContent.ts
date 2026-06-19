@@ -4,7 +4,7 @@
  */
 
 export const manualSections = {
-    header: `# Manual de Uso - $implesRV (v1.3.0)
+    header: `# Manual de Uso - $implesRV (v1.4.0)
 
 Bem-vindo ao **$implesRV**, sua estação local para consolidação, controle fiduciário e simulação matemática de investimentos em Renda Variável (Ações, FIIs, FIAGROs, ETFs e BDRs).
 

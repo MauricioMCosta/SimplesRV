@@ -9,6 +9,7 @@ import { DataTableWrapper } from '@/src/components/DataTableWrapper';
 import { cn } from '@/src/lib/utils';
 import { SRVAutoComplete } from '@/src/components/SRVAutoComplete';
 import * as CNPJ from '@/src/lib/cnpj';
+import { ASSET_TYPES, AssetType } from '@/src/db/database.types';
 
 export default function Assets() {
   const { assets, custodians, db } = useDatabase();
@@ -220,16 +221,13 @@ export default function Assets() {
                 <select
                   className="w-full px-3 py-2 bg-slate-50 border border-brand-line rounded text-sm outline-none focus:border-brand-accent transition-colors font-bold"
                   value={formData.type}
-                  onChange={e => setFormData({ ...formData, type: e.target.value })}
+                  onChange={e => setFormData({ ...formData, type: e.target.value as AssetType })}
                 >
-                  <option value="AÇÕES">Ações</option>
-                  <option value="FII">FII</option>
-                  <option value="FIA">FIA</option>
-                  <option value="ETF">ETF</option>
-                  <option value="BDR">BDR</option>
-                  <option value="RENDA FIXA">Renda Fixa</option>
-                  <option value="CRYPTO">Criptomoeda</option>
-                  <option value="OUTROS">Outros</option>
+                  {ASSET_TYPES.map(assetType => (
+                    <option key={assetType.value} value={assetType.value}>
+                      {assetType.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

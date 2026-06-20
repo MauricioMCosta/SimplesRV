@@ -22,8 +22,9 @@ O **Dashboard** é a central executiva da sua carteira, sintetizando dados cadas
 
 O cadastro de **Ativos** atua como o registro cadastral mestre de todas as suas posições:
 
-- **Pendências Automáticas:** Se você registrar uma transação ou importar uma nota contendo um ticker inédito, o sistema criará o ativo automaticamente sob a classificação de "PENDENTE".
-- **Manutenção e Detalhamento:** Edite os parâmetros básicos do Ativo, incluindo a Razão Social (Descrição), Tipo (Ação, FII, BDR, etc.), Custodiante e Fonte Pagadora de proventos.
+- **Pendências Automáticas:** Se você registrar uma transação ou importar uma nota contendo um ticker inédito, o sistema criará o ativo automaticamente sob a classificação de "PENDENTE" e tipo padrão "OUTROS".
+- **Lista Centrada de Tipos de Ativos (v1.4.0):** Para modularidade e consistência, a tipagem de ativos agora é formalizada através do tipo compilado \`AssetType\`. Os tipos oficialmente suportados e unificados incluem: **Ações**, **FII**, **FIAGRO**, **FIA**, **ETF**, **BDR**, **Renda Fixa**, **Criptomoeda** e **Outros**.
+- **Manutenção e Detalhamento:** Edite os parâmetros básicos do Ativo, incluindo a Razão Social (Descrição), Tipo, Custodiante e Fonte Pagadora de proventos.
 - **Pesquisa Inteligente (Autocomplete):** Ao editar, utilize campos de busca rápida para associar o Custodiante e Fonte Pagadora sem digitação repetitiva.`,
 
     custodians: `## 3. Custodiantes e Fontes Pagadoras

@@ -385,7 +385,7 @@ export async function addTransaction(t: Transaction) {
       await db.assets.add({
         ticker,
         description: '',
-        type: '',
+        type: 'OUTROS',
         is_pending: true
       });
     }

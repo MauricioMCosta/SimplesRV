@@ -1,6 +1,5 @@
 import { ReportDefinition } from './reports.types';
 import { equitySummaryReport } from './equitySummary';
-import { profitByTickerReport } from './profitByTicker';
 import { annualizedPositionsReport } from './annualizedPositions';
 import { realizedProfitsReport } from './realizedProfits';
 import { getTaxReportData, formatTaxReportMarkdown } from './taxReport';
@@ -19,7 +18,6 @@ export const reports: ReportDefinition[] = [
     }
   },
   equitySummaryReport,
-  profitByTickerReport,
   annualizedPositionsReport,
   realizedProfitsReport,
 ];
